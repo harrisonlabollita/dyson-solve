@@ -24,7 +24,7 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
     S.Sigma_iw << 0.5*U
     
     # Dyson solver object
-    dys = Dyson(lamb, eps)
+    dys = Dyson(lamb=lamb, eps=eps)
 
     g = 0.5*(S.G_iw['up'] + S.G_iw['down'])
     S.G_iw['up'] << g
@@ -34,7 +34,7 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
     
     S.solve(h_int = U*n('up', 0)*n('down',0), 
             length_cycle=100,
-            n_cycles = mc_cycles,
+            n_cycles = int(mc_cycles),
             n_warmup_cycles = 10000,
             measure_density_matrix = True,
             use_norm_as_weight = True,

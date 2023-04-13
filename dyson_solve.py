@@ -41,12 +41,15 @@ class Symmetrizer(object):
 
 
 
-def Dyson(object):
+class Dyson(object):
 
-    def __init__(self, lamb, eps, 
+    def __init__(self, lamb=20, 
+                       eps=1e-9,                
                        method='trust-constr', 
-                       options=dict(maxiter=10000)
-                       verbose=True):
+                       options=dict(maxiter=10000),
+                       verbose=True
+                       ):
+
         self.lamb = lamb                              # dlr lambda
         self.eps  = eps                               # dlr epsilon
         self.d    = dlr(lamb=self.lamb, eps=self.eps) # dlr class
@@ -256,6 +259,7 @@ def Dyson(object):
                                                                 beta,
                                                                 Sigma_moments[block]
                                                                 )
+
             Sigma_iw_fit[block].data[:] = self.d.eval_dlr(sig_xaa, iw, beta)
             Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
 

@@ -75,6 +75,7 @@ class Dyson(object):
                 else:
                     Mkl[iwk, iwl] = (K0wk*K0wl - Kbwk*Kbwl)
                     Mkl[iwk, iwl] /= ((wk+wl))
+        return Mkl
 
 
     def constrained_lstsq_dlr_from_tau(self,
@@ -166,7 +167,7 @@ class Dyson(object):
             ))
             
         def constraint_func(x):
-            sig = d.dlr_from_matsubara(sig_from_x(x), beta)
+            sig = self.d.dlr_from_matsubara(sig_from_x(x), beta)
             mat = -sig.sum(axis=0)
             vec = mat_vec(mat)
             return vec
@@ -234,7 +235,7 @@ class Dyson(object):
                        options=self.options
             )
         
-        if verbose: print(sol.success, sol.message)
+        if self.verbose: print(sol.success, sol.message)
         if not sol.success: print('[WARNING] Minimization did not converge!')
         
         sig_iwaa = sig_from_x(sol.x)
@@ -260,7 +261,7 @@ class Dyson(object):
                                                                 Sigma_moments[block]
                                                                 )
 
-            Sigma_iw_fit[block].data[:] = self.d.eval_dlr(sig_xaa, iw, beta)
+            Sigma_iw_fit[block].data[:] = self.d.eval_dlr_freq(sig_xaa, iw, beta)
             Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
 
         return Sigma_iw_fit

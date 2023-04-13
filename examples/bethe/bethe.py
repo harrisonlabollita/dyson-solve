@@ -47,16 +47,18 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
     glist = [GfImTime(indices=g.indices, beta=beta, n_points=S.n_tau) for _, g in S.G0_iw]
     S.G0_tau = BlockGf(name_list = ['up', 'down'], block_list=glist, make_copies=True)
     for block, g in S.G0_iw: S.G0_tau[block] << Fourier(S.G0_iw[block])
-    
-    Sigma_iw_raw = S.Sigma_iw.copy()
-    Sigma_iw_fit = dys.solve(Sigma_iw_raw,
-                             S.G_tau, 
-                             S.G0_tau,
-                             S.Sigma_moments
-                             )
 
-    S.Sigma_iw << Sigma_iw_fit
+    if mpi.is_master_node():
+        Sigma_iw_raw = S.Sigma_iw.copy()
+        Sigma_iw_fit = dys.solve(Sigma_iw_raw,
+                                 S.G_tau, 
+                                 S.G0_tau,
+                                 S.Sigma_moments
+                                 )
 
+        S.Sigma_iw << Sigma_iw_fit
+
+    S.Sigma_iw = mpi.bcast(S.Sigma_iw)
     g = 0.5*(S.Sigma_iw['up'] + S.Sigma_iw['down'])
     S.Sigma_iw['up'] << g
     S.Sigma_iw['down'] << S.Sigma_iw['up']

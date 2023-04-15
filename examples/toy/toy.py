@@ -28,7 +28,7 @@ U = 2.0
 beta = 100
 
 lamb = 100
-eps  = 1e-14
+eps  = 1e-17
 
 tol = 1e-10
 
@@ -40,11 +40,12 @@ Sigma_iw_ref = Gf(mesh=iw_mesh, target_shape=[1,1])
 Sigma_iw_ref << U/2 + 0.25*U*U*inverse(iOmega_n)
 
 dys = Dyson(lamb=lamb, eps=eps, 
-            options=dict(maxiter=1000, 
+            options=dict(maxiter=4000, 
                          disp=True, 
                          gtol=1e-32, 
-                         xtol=1e-16, 
-                         finite_diff_rel_step=1e-20))
+                         xtol=1e-100, 
+                         finite_diff_rel_step=1e-20
+                         ))
 
 tau_l = dys.d.get_tau(beta)
 

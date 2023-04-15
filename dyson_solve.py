@@ -40,6 +40,17 @@ class Symmetrizer(object):
     def get_triu_indices(self): return self.triu_idxs
 
 
+class ConstrainedDLRResult(dict):
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError(name) from e
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
 
 class Dyson(object):
 
@@ -85,8 +96,6 @@ class Dyson(object):
                                        beta,          # inverse temperature
                                        sigma_moments, # high-freq moments of Σ
                                       ):
-        
-        
         
         
         
@@ -177,7 +186,6 @@ class Dyson(object):
         constraints = (NonlinearConstraint(constraint_func,
                                                bound, bound))
 
-
         # target function  
         def dyson_difference(x):
             
@@ -199,7 +207,7 @@ class Dyson(object):
             
         freq = self.d.get_matsubara_frequencies(beta)
         
-        # dlr fit to G and G0
+        # dlr fit to G and G0 
         g_xaa = self.d.lstsq_dlr_from_tau(tau, g_iaa, beta)
         g0_xaa = self.d.lstsq_dlr_from_tau(tau, g0_iaa, beta)
         
@@ -225,25 +233,27 @@ class Dyson(object):
         # optimize Σ(iν)
         x_init = x_from_sig(sig0_iwaa)
 
-        # minimize
-        # print('initial diff: ', dyson_difference(x_init))
-        
-        sol = minimize(target_function, 
+        solution = minimize(target_function, 
                        x_init,
                        method=self.method,
                        constraints=constraints,
                        options=self.options
             )
         
-        if self.verbose: print(sol.success, sol.message)
-        if not sol.success: print('[WARNING] Minimization did not converge!')
+        if self.verbose: print(solution.success, solution.message)
+        if not solution.success: print('[WARNING] Minimization did not converge!')
         
-        sig_iwaa = sig_from_x(sol.x)
+        sig_iwaa = sig_from_x(solution.x)
         sig_xaa = self.d.dlr_from_matsubara(sig_iwaa, beta)
             
         if self.verbose: print(f'Σ1 constraint diff: {np.max(np.abs(-sig_xaa.sum(axis=0)-sigma_1)):.4e}')
 
-        return sig_xaa, sol
+        result = ConstrainedDLRResult(solution = solution,
+                                      sig_xaa  = sig_xaa,
+                                      g_xaa    = g_xaa,
+                                      g0_xaa   = g0_xaa
+                                     )
+        return result
 
     def solve(self, Sigma_iw, G_tau, G0_tau, Sigma_moments):
 
@@ -255,13 +265,14 @@ class Dyson(object):
 
         for block, sig in Sigma_iw_fit:
 
-            sig_xaa, sol =  self._constrained_lstsq_dlr_from_tau(tau, G_tau[block].data,
-                                                                G0_tau[block].data,
-                                                                beta,
-                                                                Sigma_moments[block]
-                                                                )
+            result =  self._constrained_lstsq_dlr_from_tau(tau, 
+                                                           G_tau[block].data,
+                                                           G0_tau[block].data,
+                                                           beta,
+                                                           Sigma_moments[block]
+                                                          )
 
-            Sigma_iw_fit[block].data[:] = self.d.eval_dlr_freq(sig_xaa, iw, beta)
+            Sigma_iw_fit[block].data[:] = self.d.eval_dlr_freq(result.sig_xaa, iw, beta)
             Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
 
         return Sigma_iw_fit

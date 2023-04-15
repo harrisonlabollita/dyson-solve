@@ -1,3 +1,5 @@
+import sys
+
 from triqs.gf import *
 from triqs.operators import *
 from triqs_cthyb import *
@@ -7,6 +9,7 @@ from triqs.utility import mpi
 import numpy as np
 np.random.seed(1234)
 
+sys.path.append('../../')
 from dyson_solve import Dyson
 
 

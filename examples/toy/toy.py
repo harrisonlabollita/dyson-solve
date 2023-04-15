@@ -4,6 +4,7 @@ import numpy as np
 np.random.seed(85281)
 
 import matplotlib.pyplot as plt
+plt.style.use('publish')
 
 from toy_dyson_solve import Dyson
 
@@ -11,7 +12,7 @@ def eval_G0_tau(tau, U, beta):
     eps = -U/2
     G = np.zeros((len(tau),1,1), dtype=complex)
     for it, t in enumerate(tau):
-        G[it,:,:] = -np.exp((beta*(eps < 0) - t) * eps) / (1. + np.exp(-beta * abs(eps)))
+        G[it] = -np.exp((beta*(eps < 0) - t) * eps) / (1. + np.exp(-beta * abs(eps)))
     return G
 
 def eval_G_tau(tau, U, beta):
@@ -39,15 +40,19 @@ Sigma_iw_ref = Gf(mesh=iw_mesh, target_shape=[1,1])
 Sigma_iw_ref << U/2 + 0.25*U*U*inverse(iOmega_n)
 
 dys = Dyson(lamb=lamb, eps=eps, 
-            options=dict(maxiter=400, disp=True, gtol=1e-32, xtol=1e-10, finite_diff_rel_step=1e-20))
+            options=dict(maxiter=1000, 
+                         disp=True, 
+                         gtol=1e-32, 
+                         xtol=1e-16, 
+                         finite_diff_rel_step=1e-20))
 
 tau_l = dys.d.get_tau(beta)
 
 G0_tau = eval_G0_tau(tau_l, U, beta)
-#G0_tau += np.random.normal(scale=tol, size=G0.shape)
+#G0_tau += np.random.normal(scale=tol, size=G0_tau.shape)
 
 G_tau  = eval_G_tau(tau_l, U, beta)
-#G_tau += np.random.normal(scale=tol, size=G.shape)
+#G_tau += np.random.normal(scale=tol, size=G_tau.shape)
 
 G0_dlr = dys.d.dlr_from_tau(G0_tau)
 G_dlr = dys.d.dlr_from_tau(G_tau)
@@ -66,6 +71,10 @@ Sigma_iw_res = dys.d.eval_dlr_freq(sig_xaa, iw_array, beta)
 Sigma_iw_res += Sigma_moments[0]
 
 plt.figure()
-plt.loglog(iw_array.imag, np.abs(Sigma_iw_dyson.flatten()-Sigma_iw_ref.data.flatten()))
-plt.loglog(iw_array.imag, np.abs(Sigma_iw_res.flatten()-Sigma_iw_ref.data.flatten()))
+plt.loglog(iw_array.imag, np.abs(Sigma_iw_dyson.flatten()-Sigma_iw_ref.data.flatten()), 
+           label=r'$G_{0}^{-1}-G^{-1}$')
+plt.loglog(iw_array.imag, np.abs(Sigma_iw_res.flatten()-Sigma_iw_ref.data.flatten()),
+           label='res. min.')
+plt.legend()
+plt.xlabel(r'$\nu_{n}$');  plt.ylabel(r'$|\Sigma(i\nu_{n})-\Sigma_{\mathrm{exact}}(i\nu_{n})|$')
 plt.show()

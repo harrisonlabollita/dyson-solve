@@ -53,7 +53,7 @@ class Dyson(object):
         self.lamb = lamb                              # dlr lambda
         self.eps  = eps                               # dlr epsilon
         self.d    = dlr(lamb=self.lamb, eps=self.eps) # dlr class
-        self.Mkl  = self.compute_mkl()                # compute residual matrix
+        self.Mkl  = self._compute_mkl()                # compute residual matrix
         self.method = method                          # scipy minimize method
         self.options = options                        # minimize options
         self.verbose = verbose
@@ -64,7 +64,7 @@ class Dyson(object):
 
 
     # function to precompute Mkl
-    def compute_mkl(self):
+    def _compute_mkl(self):
         Mkl = np.zeros((len(self.d), len(self.d)), dtype=np.float128)
         for iwk, wk in enumerate(self.d.dlrrf):
             for iwl, wl in enumerate(self.d.dlrrf):
@@ -78,7 +78,7 @@ class Dyson(object):
         return Mkl
 
 
-    def constrained_lstsq_dlr_from_tau(self,
+    def _constrained_lstsq_dlr_from_tau(self,
                                        tau,           # tau mesh
                                        g_iaa,         # G data
                                        g0_iaa,        # G0 data
@@ -255,7 +255,7 @@ class Dyson(object):
 
         for block, sig in Sigma_iw_fit:
 
-            sig_xaa, sol =  self.constrained_lstsq_dlr_from_tau(tau, G_tau[block].data,
+            sig_xaa, sol =  self._constrained_lstsq_dlr_from_tau(tau, G_tau[block].data,
                                                                 G0_tau[block].data,
                                                                 beta,
                                                                 Sigma_moments[block]

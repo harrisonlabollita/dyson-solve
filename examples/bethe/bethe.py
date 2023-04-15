@@ -34,7 +34,7 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
     
     S.solve(h_int = U*n('up', 0)*n('down',0), 
             length_cycle=100,
-            n_cycles = int(mc_cycles),
+            n_cycles = int(mc_cycles/mpi.size),
             n_warmup_cycles = 10000,
             measure_density_matrix = True,
             use_norm_as_weight = True,

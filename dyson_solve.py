@@ -52,6 +52,18 @@ class ConstrainedDLRResult(dict):
     __delattr__ = dict.__delitem__
 
 
+class DysonSolveResult(dict):
+
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError(name) from e
+
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
+
+
 class Dyson(object):
 
     def __init__(self, lamb=20, 
@@ -199,6 +211,7 @@ class Dyson(object):
 
             # ||R||^2 = r^T @ M @ r
             R2 = np.einsum('mnk, kl, lnm->nm', r_xaa.T.conj(), self.Mkl, r_xaa).flatten()
+
             return np.sqrt(np.sum(R2)).real
             
         def target_function(x):
@@ -263,16 +276,26 @@ class Dyson(object):
         Sigma_iw_fit = Sigma_iw.copy()
         iw = np.array([complex(x) for x in Sigma_iw_fit.mesh])
 
+        dlr_results = {}
+
         for block, sig in Sigma_iw_fit:
 
-            result =  self._constrained_lstsq_dlr_from_tau(tau, 
+            dlr_results[block] =  self._constrained_lstsq_dlr_from_tau(tau, 
                                                            G_tau[block].data,
                                                            G0_tau[block].data,
                                                            beta,
                                                            Sigma_moments[block]
                                                           )
 
-            Sigma_iw_fit[block].data[:] = self.d.eval_dlr_freq(result.sig_xaa, iw, beta)
+            Sigma_iw_fit[block].data[:] = self.d.eval_dlr_freq(dlr_results[block].sig_xaa, iw, beta)
             Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
 
-        return Sigma_iw_fit
+
+        result = DysonSolveResult(Sigma_iw      = Sigma_iw_fit,
+                                  G0_tau        = G0_tau,
+                                  G_tau         = G_tau,
+                                  Sigma_moments = Sigma_moments,
+                                  dlr_optim     = dlr_results
+                                  )
+
+        return result

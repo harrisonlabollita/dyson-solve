@@ -53,13 +53,13 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
 
     if mpi.is_master_node():
         Sigma_iw_raw = S.Sigma_iw.copy()
-        Sigma_iw_fit = dys.solve(Sigma_iw_raw,
+        result       = dys.solve(Sigma_iw_raw,
                                  S.G_tau, 
                                  S.G0_tau,
                                  S.Sigma_moments
                                  )
 
-        S.Sigma_iw << Sigma_iw_fit
+        S.Sigma_iw << result.Sigma_iw
 
     S.Sigma_iw = mpi.bcast(S.Sigma_iw)
     g = 0.5*(S.Sigma_iw['up'] + S.Sigma_iw['down'])

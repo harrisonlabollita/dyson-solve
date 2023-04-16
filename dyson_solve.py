@@ -333,13 +333,14 @@ class Dyson(object):
                 Sigma_iw_fit = self.d.eval_dlr_freq(dlr_results.sig_xaa,om_mesh,beta)
                 Sigma_iw_fit += Sigma_moments[0]
 
+        else:
+            raise ValueError
+
         result = DysonSolveResult(Sigma_iw      = Sigma_iw_fit,
                                   G0_tau        = G0_tau,
                                   G_tau         = G_tau,
                                   Sigma_moments = Sigma_moments,
                                   dlr_optim     = dlr_results
                                   )
-        else:
-            raise ValueError
 
         return result

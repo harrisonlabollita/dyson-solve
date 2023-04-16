@@ -2,6 +2,11 @@ import numpy as np
 from pydlr import kernel, dlr
 from scipy.optimize import minimize, LinearConstraint, NonlinearConstraint
 
+from triqs.gf import *
+
+is_block_gf = lambda x : isinstance(x, BlockGf)
+is_array = lambda x : isinstance(x, np.ndarray)
+
 class Symmetrizer(object):
 
     def __init__(self, nx, no):
@@ -102,14 +107,14 @@ class Dyson(object):
 
 
     def _constrained_lstsq_dlr_from_tau(self,
-                                       tau,           # tau mesh
                                        g_iaa,         # G data
                                        g0_iaa,        # G0 data
                                        beta,          # inverse temperature
                                        sigma_moments, # high-freq moments of Σ
+                                       tau=None,      # tau mesh
                                       ):
-        
-        
+
+        assert g_iaa.shape[1:] == g0_iaa.shape[1:] == sigma_moments.shape[1:], "number of orbs inconsistent across G, G0, and moments"
         
         nx = len(self.d)
         ni, no, _ = g_iaa.shape
@@ -221,12 +226,20 @@ class Dyson(object):
         freq = self.d.get_matsubara_frequencies(beta)
         
         # dlr fit to G and G0 
-        g_xaa = self.d.lstsq_dlr_from_tau(tau, g_iaa, beta)
-        g0_xaa = self.d.lstsq_dlr_from_tau(tau, g0_iaa, beta)
+        if tau is None:
+            g_xaa = self.d.dlr_from_tau(g_iaa)
+            g0_xaa = self.d.dlr_from_tau(g0_iaa)
+        else:
+            g_xaa = self.d.lstsq_dlr_from_tau(tau, g_iaa, beta)
+            g0_xaa = self.d.lstsq_dlr_from_tau(tau, g0_iaa, beta)
         
         if self.verbose:
-            g=self.d.eval_dlr_tau(g_xaa, tau, beta)
-            g0=self.d.eval_dlr_tau(g0_xaa, tau,  beta)
+            if tau is None:
+                g=self.d.tau_from_dlr(g_xaa)
+                g0=self.d.tau_from_dlr(g0_xaa)
+            else:
+                g=self.d.eval_dlr_tau(g_xaa, tau, beta)
+                g0=self.d.eval_dlr_tau(g0_xaa, tau,  beta)
             
             print('initial DLR fits to G(τ) and G0(τ)')
             print(f'|G(τ) - Gdlr(τ)| = {np.max(np.abs(g-g_iaa)):.6e}')
@@ -268,28 +281,55 @@ class Dyson(object):
                                      )
         return result
 
-    def solve(self, Sigma_iw, G_tau, G0_tau, Sigma_moments):
+    def solve(self, Sigma_iw=None, G_tau=None, G0_tau=None, Sigma_moments=None, beta=None, om_mesh=None):
 
-        beta = G_tau.mesh.beta
-        tau  = np.array([float(x) for x in G_tau.mesh])
+        if all(list(map(is_block_gf, [Sigma_iw, G_tau, G0_tau]))):
 
-        Sigma_iw_fit = Sigma_iw.copy()
-        iw = np.array([complex(x) for x in Sigma_iw_fit.mesh])
 
-        dlr_results = {}
+            beta = G_tau.mesh.beta
+            tau  = np.array([float(x) for x in G_tau.mesh])
 
-        for block, sig in Sigma_iw_fit:
+            Sigma_iw_fit = Sigma_iw.copy()
+            iw = np.array([complex(x) for x in Sigma_iw_fit.mesh])
 
-            dlr_results[block] =  self._constrained_lstsq_dlr_from_tau(tau, 
-                                                           G_tau[block].data,
-                                                           G0_tau[block].data,
-                                                           beta,
-                                                           Sigma_moments[block]
-                                                          )
+            dlr_results = {}
 
-            Sigma_iw_fit[block].data[:] = self.d.eval_dlr_freq(dlr_results[block].sig_xaa, iw, beta)
-            Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
+            for block, sig in Sigma_iw_fit:
 
+                dlr_results[block] =  self._constrained_lstsq_dlr_from_tau(G_tau[block].data,
+                                                                           G0_tau[block].data,
+                                                                           beta,
+                                                                           Sigma_moments[block],
+                                                                           tau=tau
+                                                              )
+
+                Sigma_iw_fit[block].data[:] = self.d.eval_dlr_freq(dlr_results[block].sig_xaa, iw, beta)
+                Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
+
+
+            result = DysonSolveResult(Sigma_iw      = Sigma_iw_fit,
+                                      G0_tau        = G0_tau,
+                                      G_tau         = G_tau,
+                                      Sigma_moments = Sigma_moments,
+                                      dlr_optim     = dlr_results
+                                      )
+
+        elif all(list(map(is_array, [G_tau, G0_tau]))):
+            assert beta is not None, "must provide a beta!"
+
+            dlr_results = self._constrained_lstsq_dlr_from_tau(G_tau,
+                                                              G0_tau,
+                                                              beta,
+                                                              Sigma_moments,
+                                                              tau=None
+                                                              )
+
+            if om_mesh is None:
+                Sigma_iw_fit = self.d.matsubara_from_dlr(dlr_results.sig_xaa)
+                Sigma_iw_fit += Sigma_moments[0]
+            else:
+                Sigma_iw_fit = self.d.eval_dlr_freq(dlr_results.sig_xaa,om_mesh,beta)
+                Sigma_iw_fit += Sigma_moments[0]
 
         result = DysonSolveResult(Sigma_iw      = Sigma_iw_fit,
                                   G0_tau        = G0_tau,

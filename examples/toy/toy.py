@@ -1,3 +1,5 @@
+import sys
+
 from triqs.gf import *
 
 import numpy as np
@@ -6,7 +8,9 @@ np.random.seed(85281)
 import matplotlib.pyplot as plt
 plt.style.use('publish')
 
-from toy_dyson_solve import Dyson
+sys.path.append('../../')
+from dyson_solve import Dyson
+
 
 def eval_G0_tau(tau, U, beta):
     eps = -U/2
@@ -24,6 +28,7 @@ def eval_G_tau(tau, U, beta):
                 -0.5*np.exp((beta*(eps2<0) - t) * eps2) / (1. + np.exp(-beta * abs(eps2)))
     return G
 
+# set up problem
 U = 2.0
 beta = 100
 
@@ -65,12 +70,16 @@ Sigma_iw_dyson = np.linalg.inv(G0_iw) - np.linalg.inv(G_iw)
 
 Sigma_moments = np.array([U/2, 0.25*U*U],dtype=complex).reshape(-1,1,1)
 
-sig_xaa, sol = dys.constrained_lstsq_dlr_from_tau(tau_l, G_tau, G0_tau, beta, Sigma_moments)
+result = dys.solve(G0_tau=G0_tau, 
+                   G_tau=G_tau, 
+                   Sigma_moments=Sigma_moments,
+                   beta=beta, 
+                   om_mesh=iw_array)
+
+Sigma_iw_res = result.Sigma_iw
 
 
-Sigma_iw_res = dys.d.eval_dlr_freq(sig_xaa, iw_array, beta)
-Sigma_iw_res += Sigma_moments[0]
-
+# plot results
 plt.figure()
 plt.loglog(iw_array.imag, np.abs(Sigma_iw_dyson.flatten()-Sigma_iw_ref.data.flatten()), 
            label=r'$G_{0}^{-1}-G^{-1}$')

@@ -283,6 +283,8 @@ class Dyson(object):
 
     def solve(self, Sigma_iw=None, G_tau=None, G0_tau=None, Sigma_moments=None, beta=None, om_mesh=None):
 
+        result = None
+
         if all(list(map(is_block_gf, [Sigma_iw, G_tau, G0_tau]))):
 
 
@@ -337,5 +339,7 @@ class Dyson(object):
                                   Sigma_moments = Sigma_moments,
                                   dlr_optim     = dlr_results
                                   )
+        else:
+            raise ValueError
 
         return result

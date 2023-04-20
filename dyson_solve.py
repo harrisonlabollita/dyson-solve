@@ -7,7 +7,7 @@ from triqs.gf import *
 is_block_gf = lambda x : isinstance(x, BlockGf)
 is_array = lambda x : isinstance(x, np.ndarray)
 
-class Symmetrizer(object):
+class Symmetrizer:
 
     def __init__(self, nx, no):
         self.N = (no*(no-1))//2
@@ -69,7 +69,7 @@ class DysonSolveResult(dict):
     __delattr__ = dict.__delitem__
 
 
-class Dyson(object):
+class Dyson:
 
     def __init__(self, lamb=20, 
                        eps=1e-9,                
@@ -152,7 +152,7 @@ class Dyson(object):
                 np.array(x_u.real, dtype=float),
                 np.array(x_u.imag, dtype=float)))
                                        
-        # Greens function <-> vector conversion
+        # Self-energy <-> vector conversion
         sym = Symmetrizer(nx, no)
 
         def sig_from_x(x):
@@ -208,8 +208,9 @@ class Dyson(object):
             ))
             
         def constraint_func(x):
+            # constraint condition: -∑σk =  Σ_1
             sig = self.d.dlr_from_matsubara(sig_from_x(x), beta)
-            mat = -sig.sum(axis=0)
+            mat = -sig.sum(axis=0) 
             vec = mat_vec(mat)
             return vec
         
@@ -231,12 +232,9 @@ class Dyson(object):
 
             # ||R||^2 = r^T @ M @ r
             R2 = np.einsum('mnk, kl, lnm->nm', r_xaa.T.conj(), self.Mkl, r_xaa).flatten()
-
-            return np.sqrt(np.sum(R2)).real
             
-        def target_function(x):
-            y = dyson_difference(x)
-            return y 
+            # the Frobeinus norm
+            return np.sqrt(np.sum(R2)).real
             
         freq = self.d.get_matsubara_frequencies(beta)
         
@@ -274,7 +272,7 @@ class Dyson(object):
         # optimize Σ(iν)
         x_init = x_from_sig(sig0_iwaa)
 
-        solution = minimize(target_function, 
+        solution = minimize(dyson_difference, 
                        x_init,
                        method=self.method,
                        constraints=constraints,
@@ -299,9 +297,9 @@ class Dyson(object):
     def solve(self, Sigma_iw=None, G_tau=None, G0_tau=None, Sigma_moments=None, beta=None, om_mesh=None):
 
         result = None
-
+        
+        # we are working with a TRIQS Green's function/ Block Green's function object
         if all(list(map(is_block_gf, [G_tau, G0_tau]))):
-
 
             beta = G_tau.mesh.beta
             tau  = np.array([float(x) for x in G_tau.mesh])
@@ -332,7 +330,9 @@ class Dyson(object):
                                       dlr_optim     = dlr_results
                                       )
 
+        # our Green's functions are just numpy arrays
         elif all(list(map(is_array, [G_tau, G0_tau]))):
+
             assert beta is not None, "must provide a beta!"
 
             dlr_results = self._constrained_lstsq_dlr_from_tau(G_tau,

@@ -90,6 +90,21 @@ class Dyson(object):
         if self.verbose: self.options['disp'] = True
         else: self.options['disp'] = False
 
+    def __len__(self): return len(self.d)
+
+    def __repr__(self):
+        out = '-'*20 + ' Dyson solver ' + '-'*20
+        out += '\nΛ = {} (Λ ∼ ωmax*β))'.format(self.lamb)
+        out += '\nε = {:1.0e}'.format(self.eps)
+        out += '\ndlr basis size = {}'.format(len(self))
+        out += '\nscipy info: '
+        out += '\nmethod = {}'.format(self.method)
+        for key, val in self.options.items():
+            out += '\n{}     =    {}'.format(key, val)
+        return out
+
+    __str__ = __repr__
+
 
     # function to precompute Mkl
     def _compute_mkl(self):
@@ -285,12 +300,13 @@ class Dyson(object):
 
         result = None
 
-        if all(list(map(is_block_gf, [Sigma_iw, G_tau, G0_tau]))):
+        if all(list(map(is_block_gf, [G_tau, G0_tau]))):
 
 
             beta = G_tau.mesh.beta
             tau  = np.array([float(x) for x in G_tau.mesh])
 
+            #TODO: Sigma_iw shouldn't be required for BlockGf option
             Sigma_iw_fit = Sigma_iw.copy()
             iw = np.array([complex(x) for x in Sigma_iw_fit.mesh])
 

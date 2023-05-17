@@ -26,8 +26,6 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
     S.Sigma_iw.zero();
     S.Sigma_iw << 0.5*U
     
-    # Dyson solver object
-    dys = Dyson(lamb=lamb, eps=eps)
 
     g = 0.5*(S.G_iw['up'] + S.G_iw['down'])
     S.G_iw['up'] << g
@@ -44,6 +42,7 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
             off_diag_threshold = 1e-5,
             move_double=True,
             move_shift=False,
+            measure_G_l=True
            )
 
     
@@ -52,16 +51,13 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
     for block, g in S.G0_iw: S.G0_tau[block] << Fourier(S.G0_iw[block])
 
     if mpi.is_master_node():
-        Sigma_iw_raw = S.Sigma_iw.copy()
-        result       = dys.solve(Sigma_iw = Sigma_iw_raw,
-                                 G_tau = S.G_tau, 
-                                 G0_tau = S.G0_tau,
-                                 Sigma_moments = S.Sigma_moments
-                                 )
+        for i, g in S.G_l:
+            g.enforce_discontinuity(np.identity(g.target_shape[0]))
+            S.G_iw[i].set_from_legendre(g)
 
-        S.Sigma_iw << result.Sigma_iw
+    S.G_iw << make_hermitian(S.G_iw)
+    S.Sigma_iw << inverse(S.G0_iw) - inverse(S.G_iw)
 
-    S.Sigma_iw = mpi.bcast(S.Sigma_iw)
     g = 0.5*(S.Sigma_iw['up'] + S.Sigma_iw['down'])
     S.Sigma_iw['up'] << g
     S.Sigma_iw['down'] << S.Sigma_iw['up']
@@ -72,8 +68,8 @@ def run_bethe(lamb, n_tau, mc_cycles, eps=1e-6):
     if mpi.is_master_node():
         out = 'bethe_{}_{}_{:1.0e}.h5'.format(lamb, n_tau, mc_cycles)
         ar = HDFArchive(out, 'a')
-        ar['Sigma_iw_raw'] = Sigma_iw_raw
-        ar['Sigma_iw_fit'] = S.Sigma_iw
+        ar['Sigma_iw_raw'] = S.Sigma_iw_raw
+        ar['Sigma_iw']     = S.Sigma_iw
         ar['Sigma_moments'] = S.Sigma_moments
 
         ar['G_iw']         = S.G_iw

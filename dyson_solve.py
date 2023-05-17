@@ -75,12 +75,14 @@ class Dyson:
                        eps=1e-9,                
                        method='trust-constr', 
                        options=dict(maxiter=10000),
-                       verbose=True
+                       verbose=True,
+                       **kwargs
                        ):
 
         self.lamb = lamb                              # dlr lambda
         self.eps  = eps                               # dlr epsilon
-        self.d    = dlr(lamb=self.lamb, eps=self.eps) # dlr class
+        self.d    = dlr(lamb=self.lamb, eps=self.eps, # dlr class
+                       **kwargs)
         self.Mkl  = self._compute_mkl()                # compute residual matrix
         self.method = method                          # scipy minimize method
         self.options = options                        # minimize options
@@ -98,9 +100,9 @@ class Dyson:
         out += '\nε = {:1.0e}'.format(self.eps)
         out += '\ndlr basis size = {}'.format(len(self))
         out += '\nscipy info: '
-        out += '\nmethod = {}'.format(self.method)
+        out += '\n\tmethod = {}'.format(self.method)
         for key, val in self.options.items():
-            out += '\n{}     =    {}'.format(key, val)
+            out += '\n\t{}     =    {}'.format(key, val)
         return out
 
     __str__ = __repr__
@@ -271,12 +273,19 @@ class Dyson:
         
         # optimize Σ(iν)
         x_init = x_from_sig(sig0_iwaa)
+        
+        history=[]
+        def callback(x, status):
+            sig=sig_from_x(x)
+            sig_iwaa = sig+sig_infty
+            history.append((x,sig_iwaa, dyson_difference(x)))
 
         solution = minimize(dyson_difference, 
                        x_init,
                        method=self.method,
                        constraints=constraints,
-                       options=self.options
+                       options=self.options,
+                       callback=callback
             )
         
         if self.verbose: print(solution.success, solution.message)
@@ -290,11 +299,18 @@ class Dyson:
         result = ConstrainedDLRResult(solution = solution,
                                       sig_xaa  = sig_xaa,
                                       g_xaa    = g_xaa,
-                                      g0_xaa   = g0_xaa
+                                      g0_xaa   = g0_xaa,
+                                      callback  = history
                                      )
         return result
 
-    def solve(self, Sigma_iw=None, G_tau=None, G0_tau=None, Sigma_moments=None, beta=None, om_mesh=None):
+    def solve(self, Sigma_iw=None, 
+                    G_tau=None, 
+                    G0_tau=None, 
+                    Sigma_moments=None, 
+                    beta=None, 
+                    om_mesh=None, 
+                    tau_mesh=None):
 
         result = None
         
@@ -302,7 +318,7 @@ class Dyson:
         if all(list(map(is_block_gf, [G_tau, G0_tau]))):
 
             beta = G_tau.mesh.beta
-            tau  = np.array([float(x) for x in G_tau.mesh])
+            tau  = np.array([float(x) for x in G_tau.mesh]) if tau_mesh is None else tau_mesh
 
             #TODO: Sigma_iw shouldn't be required for BlockGf option
             Sigma_iw_fit = Sigma_iw.copy()
@@ -323,13 +339,6 @@ class Dyson:
                 Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
 
 
-            result = DysonSolveResult(Sigma_iw      = Sigma_iw_fit,
-                                      G0_tau        = G0_tau,
-                                      G_tau         = G_tau,
-                                      Sigma_moments = Sigma_moments,
-                                      dlr_optim     = dlr_results
-                                      )
-
         # our Green's functions are just numpy arrays
         elif all(list(map(is_array, [G_tau, G0_tau]))):
 
@@ -339,7 +348,7 @@ class Dyson:
                                                               G0_tau,
                                                               beta,
                                                               Sigma_moments,
-                                                              tau=None
+                                                              tau=tau_mesh
                                                               )
 
             if om_mesh is None:

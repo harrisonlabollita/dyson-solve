@@ -45,33 +45,17 @@ class Symmetrizer:
     def get_triu_indices(self): return self.triu_idxs
 
 
-class ConstrainedDLRResult(dict):
-
+class Result(dict):
     def __getattr__(self, name):
-        try:
+        try: 
             return self[name]
-        except KeyError as e:
-            raise AttributeError(name) from e
-
+        except KeyError as e: raise AttributeError(name) from e
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
-
-
-class DysonSolveResult(dict):
-
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError as e:
-            raise AttributeError(name) from e
-
-    __setattr__ = dict.__setitem__
-    __delattr__ = dict.__delitem__
-
 
 class Dyson:
 
-    def __init__(self, lamb=20, 
+    def __init__(self, lamb, 
                        eps=1e-9,                
                        method='trust-constr', 
                        options=dict(maxiter=10000),
@@ -285,7 +269,7 @@ class Dyson:
                        method=self.method,
                        constraints=constraints,
                        options=self.options,
-                       callback=callback
+                       callback=callback if self.method == 'trust-constr' else lambda x : callback(x, None)
             )
         
         if self.verbose: print(solution.success, solution.message)
@@ -296,12 +280,12 @@ class Dyson:
             
         if self.verbose: print(f'Σ1 constraint diff: {np.max(np.abs(-sig_xaa.sum(axis=0)-sigma_1)):.4e}')
 
-        result = ConstrainedDLRResult(solution = solution,
-                                      sig_xaa  = sig_xaa,
-                                      g_xaa    = g_xaa,
-                                      g0_xaa   = g0_xaa,
-                                      callback  = history
-                                     )
+        result = Result(solution = solution,
+                        sig_xaa  = sig_xaa,
+                        g_xaa    = g_xaa,
+                        g0_xaa   = g0_xaa,
+                        callback  = history
+                        )
         return result
 
     def solve(self, Sigma_iw=None, 
@@ -361,11 +345,11 @@ class Dyson:
         else:
             raise ValueError
 
-        result = DysonSolveResult(Sigma_iw      = Sigma_iw_fit,
-                                  G0_tau        = G0_tau,
-                                  G_tau         = G_tau,
-                                  Sigma_moments = Sigma_moments,
-                                  dlr_optim     = dlr_results
-                                  )
+        result = Result(Sigma_iw      = Sigma_iw_fit,
+                        G0_tau        = G0_tau,
+                        G_tau         = G_tau,
+                        Sigma_moments = Sigma_moments,
+                        dlr_optim     = dlr_results
+                        )
 
         return result

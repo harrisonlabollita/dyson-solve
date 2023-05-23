@@ -24,6 +24,8 @@ g_xaa = dys.d.dlr_from_tau(G)
 
 dlr_norm = np.sqrt(g_xaa.flatten().T@dys.Mkl@g_xaa.flatten())
 
+np.testing.assert_almost_equal(analytic_norm, dlr_norm.real)
+
 print("||G|| (ana) = ", analytic_norm)
 print('||G|| (dlr) = ', dlr_norm.real)
 print(f'Δ||G|| = {abs(analytic_norm-dlr_norm.real):.10e}')

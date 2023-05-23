@@ -67,7 +67,7 @@ class Dyson:
         self.eps  = eps                               # dlr epsilon
         self.d    = dlr(lamb=self.lamb, eps=self.eps, # dlr class
                        **kwargs)
-        self.Mkl  = self._compute_mkl()                # compute residual matrix
+        self.Mkl  = self._compute_mkl()               # compute residual matrix
         self.method = method                          # scipy minimize method
         self.options = options                        # minimize options
         self.verbose = verbose
@@ -106,7 +106,7 @@ class Dyson:
                     Mkl[iwk, iwl] /= ((wk+wl))
         return Mkl
 
-
+    # implicit function to run the scipy minimization
     def _constrained_lstsq_dlr_from_tau(self,
                                        g_iaa,         # G data
                                        g0_iaa,        # G0 data
@@ -233,13 +233,9 @@ class Dyson:
             g0_xaa = self.d.lstsq_dlr_from_tau(tau, g0_iaa, beta)
         
         if self.verbose:
-            if tau is None:
-                g=self.d.tau_from_dlr(g_xaa)
-                g0=self.d.tau_from_dlr(g0_xaa)
-            else:
-                g=self.d.eval_dlr_tau(g_xaa, tau, beta)
-                g0=self.d.eval_dlr_tau(g0_xaa, tau,  beta)
-            
+            eval_tau = tau if tau is not None else np.linspace(0, beta, 1000)
+            g=self.d.eval_dlr_tau(g_xaa, eval_tau, beta)
+            g0=self.d.eval_dlr_tau(g0_xaa, eval_tau,  beta)
             print('initial DLR fits to G(τ) and G0(τ)')
             print(f'|G(τ) - Gdlr(τ)| = {np.max(np.abs(g-g_iaa)):.6e}')
             print(f'|G0(τ) - G0dlr(τ)| = {np.max(np.abs(g0-g0_iaa)):.6e}')
@@ -249,16 +245,18 @@ class Dyson:
         g0_iwaa = self.d.matsubara_from_dlr(g0_xaa, beta)
         
         # the DLR representable part of the self-energy
+        # initial guess for DLR Sigma
         sig0_iwaa = np.linalg.inv(g0_iwaa)-np.linalg.inv(g_iwaa)-sig_infty
-        
-        if self.verbose:
-            check = sig_from_x(x_from_sig(sig0_iwaa))
-            assert np.allclose(check, sig0_iwaa), "sigma converter is broken!"
+       
+        # TODO: move to tests
+        #assert np.allclose(sig0_iwaa, sig_from_x(x_from_sig(sig0_iwaa))), "sigma converter is broken!"
         
         # optimize Σ(iν)
+
         x_init = x_from_sig(sig0_iwaa)
         
         history=[]
+
         def callback(x, status):
             sig=sig_from_x(x)
             sig_iwaa = sig+sig_infty
@@ -269,11 +267,11 @@ class Dyson:
                        method=self.method,
                        constraints=constraints,
                        options=self.options,
-                       callback=callback if self.method == 'trust-constr' else lambda x : callback(x, None)
+                       callback= callback if self.method == 'trust-constr' else lambda x : callback(x, None)
             )
         
         if self.verbose: print(solution.success, solution.message)
-        if not solution.success: print('[WARNING] Minimization did not converge!')
+        if not solution.success: print('[WARNING] Minimization did not converge! Please proceed with caution!')
         
         sig_iwaa = sig_from_x(solution.x)
         sig_xaa = self.d.dlr_from_matsubara(sig_iwaa, beta)
@@ -305,11 +303,11 @@ class Dyson:
             tau  = np.array([float(x) for x in G_tau.mesh]) if tau_mesh is None else tau_mesh
 
             #TODO: Sigma_iw shouldn't be required for BlockGf option
-            Sigma_iw_fit = Sigma_iw.copy()
-            iw = np.array([complex(x) for x in Sigma_iw_fit.mesh])
+            if Sigma_iw is not None:
+                Sigma_iw_fit = Sigma_iw.copy()
+                om_mesh = np.array([complex(x) for x in Sigma_iw_fit.mesh])
 
             dlr_results = {}
-
             for block, sig in Sigma_iw_fit:
 
                 dlr_results[block] =  self._constrained_lstsq_dlr_from_tau(G_tau[block].data,

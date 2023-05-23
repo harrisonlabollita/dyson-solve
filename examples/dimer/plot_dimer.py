@@ -26,7 +26,7 @@ for itol, tol in enumerate(tolerances):
     for block, _ in G_tau_qmc: G_tau_qmc[block].data[:] += tol*(2*np.random.rand(*G_tau_qmc[block].data.shape)-1)
     G_iw_qmc = make_gf_from_fourier(G_tau_qmc)
 
-    dys = Dyson(lamb=30, eps=tol, options=dict(maxiter=5000, disp=True) )
+    dys = Dyson(lamb=80, eps=tol, options=dict(maxiter=5000, disp=True) )
     sigma_moments = sigma_high_frequency_moments(dm, hdiag, gf_struct, h_int)
 
     tau_i = np.array([float(x) for x in G_tau_qmc.mesh])
@@ -77,7 +77,7 @@ for itol, tol in enumerate(tolerances):
         lower=np.where(iw_i.imag < -5) 
         upper=np.where(iw_i.imag > 5)
 
-        ax[0,2].plot(iw_i.imag, Sigma_iw_ref['up'].data[:,0,0].imag, label='ref')
+        ax[0,2].plot(iw_i.imag, Sigma_iw_ref['up'].data[:,0,0].imag, label='ref', ls='--')
         ax[0,2].plot(iw_i.imag[lower], (sigma_moments['up'][1][0,0]/iw_i[lower]).imag, ls='--', color='tab:red', alpha=0.75, 
                 label=r'$\Sigma_{1}/i\nu_{n}$')
         ax[0,2].plot(iw_i.imag[upper], (sigma_moments['up'][1][0,0]/iw_i[upper]).imag, ls='--', color='tab:red', alpha=0.75, )

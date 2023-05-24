@@ -16,8 +16,8 @@ sys.path.append('../../')
 from dyson_solve import Dyson
 
 fig, ax = plt.subplots(2,3, figsize=(12,5))
-tolerances = [1e-4, 1e-8, 1e-12] 
-string_tol = ['1e-4', '1e-8', '1e-12'] 
+tolerances = [1e-3, 1e-6]#1e-8] 
+string_tol = ['1e-3', '1e-6']# '1e-8']
 
 for itol, tol in enumerate(tolerances):
 
@@ -26,15 +26,15 @@ for itol, tol in enumerate(tolerances):
     for block, _ in G_tau_qmc: G_tau_qmc[block].data[:] += tol*(2*np.random.rand(*G_tau_qmc[block].data.shape)-1)
     G_iw_qmc = make_gf_from_fourier(G_tau_qmc)
 
-    dys = Dyson(lamb=80, eps=tol, options=dict(maxiter=5000, disp=True) )
+    dys = Dyson(lamb=60, eps=tol*0.01, options=dict(maxiter=10000, disp=True) )
     sigma_moments = sigma_high_frequency_moments(dm, hdiag, gf_struct, h_int)
 
     tau_i = np.array([float(x) for x in G_tau_qmc.mesh])
     iw_i = np.array([complex(x) for x in G_iw_qmc.mesh])
 
-    g_xaa = dys.d.lstsq_dlr_from_tau(tau_i, G_tau_qmc['up'].data, beta)
-    g_tau=dys.d.eval_dlr_tau(g_xaa, tau_i, beta)
-    g_iw=dys.d.eval_dlr_freq(g_xaa, iw_i, beta)
+    g_xaa = dys.fit_dlr_from_tau(tau_i, G_tau_qmc['up'].data, beta)
+    g_tau=dys.eval_dlr_tau(g_xaa, tau_i, beta)
+    g_iw=dys.eval_dlr_iom(g_xaa, iw_i, beta)
 
     Sigma_iw_raw = Sigma_iw_ref.copy()
     Sigma_iw_raw.zero();
@@ -46,10 +46,10 @@ for itol, tol in enumerate(tolerances):
                        beta = beta,
                        )
     Sigma_iw_fit = result.Sigma_iw
-    history = result.dlr_optim['up'].callback
+    history = result.minimizer['up'].callback
 
 
-    if tol == 1e-4:
+    if tol == 1e-3:
         ax[0,0].plot(tau_i/beta, g_tau[:,0,0].real, label='DLR')
         ax[0,0].plot(tau_i/beta, G_tau_qmc['up'].data[:,0,0].real, ls='--', label='QMC')
         ax[0,0].legend()
@@ -61,16 +61,17 @@ for itol, tol in enumerate(tolerances):
         ax[0,1].plot(iw_i.imag, G_iw_qmc['up'].data[:,0,0].imag, label='QMC', ls='--')
         ax[0,1].set_ylabel(r'Im$G(i\nu_{n})$')
         ax[0,1].set_xlabel(r'$\nu_{n}$')
-        ax[0,1].set_xlim(-40, 40)
+        ax[0,1].set_xlim(-60, 60)
 
-        freq = dys.d.get_matsubara_frequencies(beta)
+        freq = dys.get_iom(beta)
+
         dyson   = inverse(make_gf_from_fourier(G0_tau_ref)) -  inverse(G_iw_qmc)
 
-        convert = lambda f : list(map(int, 0.5*(f.imag*beta/np.pi - 1)))
+        convert = lambda x : list(map(int, 0.5*(x.imag*beta/np.pi - 1)))
 
         dyson = np.array([dyson['up'](f)[0,0] for f in convert(freq)])
 
-        converged = history[-1][-2]
+        converged = history[-1].sigma
 
         ax[0,2].plot(freq.imag, dyson.imag, 'o-', label=r'$G_{0}^{-1}-G^{-1}$')
         ax[0,2].plot(freq.imag, converged[:,0,0].imag, 'o-', mfc='none', label=r'converged')
@@ -84,7 +85,7 @@ for itol, tol in enumerate(tolerances):
         ax[0,2].set_ylim(-0.05, 0.05)
         ax[0,2].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
         ax[0,2].set_xlabel(r'$\nu_{n}$')
-        ax[0,2].set_xlim(-40, 40)
+        ax[0,2].set_xlim(-60, 60)
 
     ax[1,0].semilogy(tau_i/beta, np.abs(G_tau_qmc['up'].data[:,0,0]-g_tau[:,0,0]), label=r'$\eta = $'+string_tol[itol])
     ax[1,0].set_ylabel(r'$|G(\tau)-G_{\mathrm{QMC}}(\tau)|$', fontsize=12)
@@ -94,7 +95,7 @@ for itol, tol in enumerate(tolerances):
     ax[1,1].set_ylabel(r'$|G(i\nu_{n})-G_{\mathrm{QMC}}(i\nu_{n})$|', fontsize=12,)
     ax[1,1].set_xlabel(r'$\nu_{n}$')
     ax[1,1].set_ylim(1e-14, 1e-1)
-    ax[1,1].set_xlim(-40, 40)
+    ax[1,1].set_xlim(-60, 60)
 
 
     ax[1,2].semilogy(iw_i.imag, np.abs(Sigma_iw_ref['up'].data[:,0,0]-Sigma_iw_fit['up'].data[:,0,0]))
@@ -102,7 +103,7 @@ for itol, tol in enumerate(tolerances):
     ax[1,2].set_xlabel(r'$\nu_{n}$')
     #ax[1,2].set_xlabel(r'$\tau$')
     ax[1,2].set_ylim(1e-14, 1e-1)
-    ax[1,2].set_xlim(-40, 40)
+    ax[1,2].set_xlim(-60, 60)
     #ax[1,2].set_xlim(0,1)
     #ax[1,2].legend(frameon=True, framealpha=0.75, facecolor='white', edgecolor='none')
 

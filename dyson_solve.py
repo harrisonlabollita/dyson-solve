@@ -101,7 +101,7 @@ class Dyson(object):
         out += '\n\tmethod = {}'.format(self.method)
         for key, val in self.options.items():
             out += '\n\t{}     =    {}'.format(key, val)
-        out = '-'*20 + '--------------' + '-'*20
+        out += '\n'+'-'*20 + '--------------' + '-'*20
         return out
 
     __str__ = __repr__
@@ -137,8 +137,11 @@ class Dyson(object):
             for iwl, wl in enumerate(self.dlr_nodes):
                 K0wk, Kbwk = kernel(np.array([0.,1.]), np.array([wk]))
                 K0wl, Kbwl = kernel(np.array([0.,1.]), np.array([wl]))
-                if np.fabs(wk+wl) < 1e-13: Mkl[iwk,iwl] = K0wk*K0wl
-                else: Mkl[iwk, iwl] = (K0wk*K0wl - Kbwk*Kbwl)/(wk+wl)
+                if np.fabs(wk+wl) < 1e-13: 
+                    Mkl[iwk,iwl] = K0wk*K0wl
+                else: 
+                    Mkl[iwk, iwl] = (K0wk*K0wl - Kbwk*Kbwl)
+                    Mkl[iwk, iwl] /= (wk+wl)
         return Mkl
 
     # run the scipy minimization
@@ -241,7 +244,7 @@ class Dyson(object):
         else: g_xaa, g0_xaa  = self.fit_dlr_from_tau(tau, g_iaa, beta), self.fit_dlr_from_tau(tau, g0_iaa, beta)
         
         if self.verbose:
-            eval_tau = tau if tau is not None else np.linspace(0, beta, len(g_iaa))
+            eval_tau = tau if tau is not None else self.get_tau(beta) #np.linspace(0, beta, len(g_iaa))
             g, g0 = self.eval_dlr_tau(g_xaa, eval_tau, beta), self.eval_dlr_tau(g0_xaa, eval_tau,  beta)
             print('initial DLR fits to G(τ) and G0(τ)')
             print(f'max|G(τ) - Gdlr(τ)| = {np.max(np.abs(g-g_iaa)):.6e}')
@@ -336,8 +339,12 @@ class Dyson(object):
                                                         tau=tau_mesh
                                                         ) 
 
-            if om_mesh is None: Sigma_iw_fit = self.iom_from_dlr(dlr_results.sig_xaa, beta) + Sigma_moments[0]
-            else: Sigma_iw_fit = self.eval_dlr_iom(dlr_results.sig_xaa,om_mesh,beta) + Sigma_moments[0]
+            if om_mesh is None:
+                Sigma_iw_fit = self.iom_from_dlr(dlr_results.sig_xaa, beta)
+                Sigma_iw_fit += Sigma_moments[0]
+            else:
+                Sigma_iw_fit = self.eval_dlr_iom(dlr_results.sig_xaa,om_mesh,beta) 
+                Sigma_iw_fit += Sigma_moments[0]
 
         else: raise ValueError
 

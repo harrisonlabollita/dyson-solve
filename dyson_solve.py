@@ -9,24 +9,39 @@ from triqs.gf import *
 is_block_gf = lambda x : isinstance(x, BlockGf)
 is_array = lambda x : isinstance(x, np.ndarray)
 
-class CallbackResults(NamedTuple):
+class CallbackResult(NamedTuple):
     x  : Any      = None
     sigma : Any   = None
     residual : Any = None
 
-class MinimizerResults(NamedTuple):
+class MinimizerResult(NamedTuple):
     scipy_sol : Any = None
     sig_xaa : Any  = None
     g_xaa   : Any  = None
     g0_xaa  : Any  = None
-    callback : CallbackResults = None
+    callback : CallbackResult = None
 
-class SolverResults(NamedTuple):
+class SolverResult(NamedTuple):
     Sigma_iw  : Any    = None
     G_tau     : Any    = None
     G0_tau    : Any    = None
     Sigma_moments : Any = None
-    minimizer : MinimizerResults     = None
+    minimizer : MinimizerResult     = None
+
+class Callback:
+
+    def __init__(self, eval_func, diff_func, method):
+        self._history   = [] # stores (x⃗, Σiνₖ, G-G₀-G₀ΣG) in a CallbackResult
+        self._eval_func = eval_func
+        self._diff_func = diff_func
+        self._method     = method
+
+    def __call__(self, *args):
+        x = args[0]
+        self._history.append(CallbackResult(x=x, sigma=self._eval_func(x),
+                                             residual=self._diff_func(x)))
+    @property
+    def history(self): return self._history
 
 
 class Symmetrizer:
@@ -144,6 +159,7 @@ class Dyson(object):
                     Mkl[iwk, iwl] /= (wk+wl)
         return Mkl
 
+
     # run the scipy minimization
     def _minimize_dyson_equation(self,
                                  g_iaa,         # G data
@@ -260,18 +276,14 @@ class Dyson(object):
         # optimize Σ(iν)
         x_init = x_from_sig(sig0_iwaa)
         
-        history=[] # stores (x⃗, Σiνₖ, G-G₀-G₀ΣG)
-        def callback(x, status):
-            sig=sig_from_x(x)
-            sig_iwaa = sig+sig_infty
-            history.append(CallbackResults(x,sig_iwaa,dyson_difference(x)))
+        cb = Callback(eval_func= lambda x : sig_from_x(x)+sig_infty, diff_func=dyson_difference, method=self.method)
 
         solution = minimize(dyson_difference, 
                             x_init,
                             method=self.method,
                             constraints=constraints,
                             options=self.options,
-                            callback= callback if self.method == 'trust-constr' else lambda x : callback(x, None)
+                            callback = cb
                            )
         
         if self.verbose: print(solution.message)
@@ -282,11 +294,11 @@ class Dyson(object):
             
         if self.verbose: print(f'Σ1 constraint diff: {np.max(np.abs(-sig_xaa.sum(axis=0)-sigma_1)):.4e}')
 
-        result = MinimizerResults(solution,
+        result = MinimizerResult(solution,
                                   sig_xaa,
                                   g_xaa,
                                   g0_xaa,
-                                  history
+                                  cb.history
                                  )
         return result
 
@@ -348,7 +360,7 @@ class Dyson(object):
 
         else: raise ValueError
 
-        result = SolverResults(Sigma_iw_fit,
+        result = SolverResult(Sigma_iw_fit,
                                G_tau,
                                G0_tau,
                                Sigma_moments,

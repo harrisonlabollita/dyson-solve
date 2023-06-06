@@ -16,8 +16,8 @@ sys.path.append('../../')
 from dyson_solve import Dyson
 
 fig, ax = plt.subplots(2,3, figsize=(12,5))
-tolerances = [1e-3, 1e-6]#1e-8] 
-string_tol = ['1e-3', '1e-6']# '1e-8']
+tolerances = [1e-4, 1e-6]#1e-8] 
+string_tol = ['1e-4', '1e-6']# '1e-8']
 
 for itol, tol in enumerate(tolerances):
 
@@ -26,7 +26,7 @@ for itol, tol in enumerate(tolerances):
     for block, _ in G_tau_qmc: G_tau_qmc[block].data[:] += tol*(2*np.random.rand(*G_tau_qmc[block].data.shape)-1)
     G_iw_qmc = make_gf_from_fourier(G_tau_qmc)
 
-    dys = Dyson(lamb=60, eps=tol*0.01, options=dict(maxiter=10000, disp=True) )
+    dys = Dyson(lamb=30, eps=tol*0.01, options=dict(maxiter=100, disp=True) )
     sigma_moments = sigma_high_frequency_moments(dm, hdiag, gf_struct, h_int)
 
     tau_i = np.array([float(x) for x in G_tau_qmc.mesh])
@@ -49,7 +49,7 @@ for itol, tol in enumerate(tolerances):
     history = result.minimizer['up'].callback
 
 
-    if tol == 1e-3:
+    if tol == 1e-4:
         ax[0,0].plot(tau_i/beta, g_tau[:,0,0].real, label='DLR')
         ax[0,0].plot(tau_i/beta, G_tau_qmc['up'].data[:,0,0].real, ls='--', label='QMC')
         ax[0,0].legend()
@@ -72,6 +72,7 @@ for itol, tol in enumerate(tolerances):
         dyson = np.array([dyson['up'](f)[0,0] for f in convert(freq)])
 
         converged = history[-1].sigma
+        print("Cvg = ", converged)
 
         ax[0,2].plot(freq.imag, dyson.imag, 'o-', label=r'$G_{0}^{-1}-G^{-1}$')
         ax[0,2].plot(freq.imag, converged[:,0,0].imag, 'o-', mfc='none', label=r'converged')

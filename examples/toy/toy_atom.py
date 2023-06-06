@@ -2,7 +2,6 @@
 import sys, os
 
 import numpy as np
-#np.random.seed(1)
 
 import matplotlib.pyplot as plt
 try: plt.style.use('publish')
@@ -78,10 +77,10 @@ def experiment(tol):
     print('running an experiment with tol = ', tol)
     dys = Dyson(lamb, eps=tol, options=dict(
                                             maxiter=5000, 
-											gtol=1e-16,
-                                            xtol=1e-16,
-                                            finite_diff_rel_step=1e-20)
-                                            )
+											#gtol=1e-16,
+                                            #xtol=1e-16,
+                                            #finite_diff_rel_step=1e-20
+                                            ))
     print(dys)
 
     print('gettting G(τ)+η')
@@ -89,11 +88,17 @@ def experiment(tol):
     # add random noise between η*(-1, 1)
     G_tau.data[:] += tol*(2*np.random.rand(*G_tau.data.shape)-1)
 
+    if False:
+        tau_pts = np.array([float(x) for x in G_tau.mesh])
+        g_xaa = dys.fit_dlr_from_tau(tau_pts, G_tau.data, beta)
+        G_iw = G_iw_ref.copy()
+        G_iw.zero()
+        G_iw.data[:]  = dys.eval_dlr_iom(g_xaa, iw_array, beta)
+
     tail = make_zero_tail(G_iw_ref, 2); tail[1] = 1.0
     G_iw = G_iw_ref.copy()
     G_iw << Fourier(G_tau, known_moments=tail)
-
-    print(len(G_iw.mesh))
+    
     print('done...')
 
     # G0_iw from G0_tau via DLR
@@ -123,44 +128,86 @@ def experiment(tol):
     Sigma_iw_res = Sigma_iw_res.flatten()
     print('done...')
 
-    return {'dyson' : Sigma_iw.data.flatten(), 'res' : Sigma_iw_res }
+    dyson  = Sigma_iw.data.flatten(); np.savetxt(f'dyson_{tol}.txt', dyson)
+    resmin = Sigma_iw_res; np.savetxt(f'resmin_{tol}.txt', resmin)
+
+    return {'dyson' : dyson, 'res' :  resmin}
 
 colors = ['tab:red', 'tab:blue', 'tab:green', 'tab:purple']
 
 def add_results_to_plot(ax, results):
-    assert len(ax) == 2
+    #assert len(ax) == 2
     c=0
     for key in results.keys():
         color=colors[c]
         dys = results[key]['dyson']
         res = results[key]['res']
 
-        if key == 1e-6:
-            ax[0].plot(iw_array.imag, Sigma_iw_ref.data.imag, 'o', ms=3, mfc='none', color='tab:red', label='ref')
-            ax[0].plot(iw_array.imag, dys.imag, '.', ms=2, color='tab:blue', 
-                    label=r'$G_{0}^{-1}-G^{-1}$ '+r'($\eta=$ '+'{:1.0e})'.format(key))
+        sigmax = np.max(np.abs(Sigma_iw_ref.data))
 
-        ax[1].loglog(iw_array.imag, np.abs(dys-Sigma_iw_ref.data), ls='-', color=color, label=r'$\eta=$ '+'{:1.0e}'.format(key))
-        ax[1].loglog(iw_array.imag, np.abs(res-Sigma_iw_ref.data), ls='--', color=color)
-        ax[1].set_ylabel(r'$\Sigma$ asbolute error')
+        if key == 1e-4:
+            ax[0].plot(iw_array.imag, dys.real, '.', ms=2, color='tab:blue', 
+                    label=r'$G_{0}^{-1}-G^{-1}$ ')
+            ax[0].plot(iw_array.imag, Sigma_iw_ref.data.real, 'o', ms=2, mfc='none', color='tab:red', label=r'$\Sigma_{\mathrm{exact}}$')
+            ax[0].plot(iw_array.imag, res.real, '.', ms=1, mfc='none', color='tab:green', label='res. min')
+            ax[1].plot(iw_array.imag, dys.imag, '.', ms=2, color='tab:blue', 
+                    label=r'$G_{0}^{-1}-G^{-1}$ ')
+            ax[1].plot(iw_array.imag, Sigma_iw_ref.data.imag, 'o', ms=2, mfc='none', color='tab:red', label=r'$\Sigma_{\mathrm{exact}}$')
+            ax[1].plot(iw_array.imag, res.imag, '.', ms=1, mfc='none', color='tab:green', label='res. min')
+
+        ax[2].loglog(iw_array.imag, np.abs(dys-Sigma_iw_ref.data), ls='-', color=color, label=r'$\eta=$ '+'{:1.0e}'.format(key))
+        ax[2].loglog(iw_array.imag, np.abs(res-Sigma_iw_ref.data), ls='--', color=color)
+        ax[2].set_ylabel(r'$\Sigma$ absolute error')
         c+=1
 
-tols = [1e-4, 1e-6, 1e-8, 1e-12]
-results = {tol : experiment(tol) for tol in tols }
-fig, ax = plt.subplots(2,1,figsize=(5, 7))
-ax[0].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
-ax[0].set_ylim(-0.1, 0.1)
-add_results_to_plot(ax, results)
-ax[0].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', loc='best', fontsize=8)
-#ax[1].loglog(n[11000:-50], 1e-7*((((2*n+1)*np.pi/beta))**2)[11000:-50], ls='dotted', lw=2, color='k')
-ax[1].axhline(100, color='k', ls='-', label=r'$G_{0}^{-1}-G^{-1}$')
-ax[1].axhline(100, color='k', ls='--', label='res. min')
-ax[1].axhline(100, color='k', ls='dotted', label=r'$\mathcal{O}(\omega_{n})$')
-ax[1].set_ylim(1e-16, 1e0)
-ax[1].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', ncols=2, loc='lower left', fontsize=8)
-ax[1].set_xlabel(r'$n$')
+def fetch_results(tols):
+    results = {}
 
-for a, let in zip(ax, ['(a)', '(b)']):
+    for tol in tols:
+        resmin = f'resmin_{tol}.txt'
+        dyson  = f'dyson_{tol}.txt'
+        if all(map(os.path.isfile, [resmin, dyson])):
+            results[tol] = {'dyson' : 
+                            np.loadtxt(dyson, dtype=complex), 
+                            'res' : np.loadtxt(resmin, dtype=complex) }
+        else: results[tol] =  experiment(tol)
+    return results
+
+tols = [1e-4, 1e-6, 1e-8]# 1e-12]
+results = fetch_results(tols)
+
+import matplotlib.gridspec as gridspec
+
+fig = plt.figure(figsize=(5, 5))
+gs  = gridspec.GridSpec(2,2)
+
+ax  = [None]*3
+ax[0] = fig.add_subplot(gs[0, 0])
+ax[1] = fig.add_subplot(gs[0, 1])
+ax[2] = fig.add_subplot(gs[1, :])
+
+#fig, ax = plt.subplots(2,1,figsize=(5, 7))
+ax[1].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
+ax[1].set_xlabel(r'$i\nu_{n}$')
+ax[1].set_ylim(-0.1, 0.1)
+ax[0].set_ylabel(r'Re$\Sigma(i\nu_{n})$')
+ax[0].set_xlabel(r'$i\nu_{n}$')
+ax[0].set_ylim(0.95, 1.05)
+add_results_to_plot(ax, results)
+
+ax[0].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', loc='lower left', fontsize=8)
+ax[2].loglog(iw_array.imag[1700:1900], 1e-3*(iw_array.imag**2)[1700:1900], ls='dotted', lw=2, color='k')
+ax[2].axhline(100, color='k', ls='-', label=r'$G_{0}^{-1}-G^{-1}$')
+ax[2].axhline(100, color='k', ls='--', label='res. min.')
+ax[2].axhline(100, color='k', ls='dotted', label=r'$\mathcal{O}(\omega_{n}^{2})$')
+ax[2].set_ylim(1e-14, 1e0)
+ax[2].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', ncols=2, loc='lower left', fontsize=7)
+ax[2].set_xlabel(r'$i\nu_{n}$')
+
+for a, let in zip(ax, ['(a)', '(b)', '(c)']):
     t = a.text(0.03, 0.85, let, transform = a.transAxes, size=14) 
     t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
-plt.show();
+
+plt.subplots_adjust(wspace=0.6, hspace=0.4)
+#plt.show();
+plt.savefig('dyson_exact_atom_abs_err.pdf')

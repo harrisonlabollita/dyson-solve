@@ -1,8 +1,6 @@
 import sys, glob, os
-from triqs.gf import *
-from triqs.atom_diag import trace_rho_op
-from triqs.operators import n
 from h5 import HDFArchive
+from triqs.gf import *
 import scipy.integrate
 
 import numpy as np
@@ -36,9 +34,13 @@ if __name__ == "__main__":
     Sigma_moments = res['dmft_results/last_iter']['Sigma_moments']
 
     Siw_raw = res['dmft_results/last_iter']['Sigma_iw_raw']
-    #tail = HDFArchive('sro_tailfit_mc_1e9.h5')
-    tail = HDFArchive('sro_dmft_tail_lg_wind.h5')
-    Siw_tail = tail['dmft_results/last_iter']['Sigma_iw']
+    tailsm = HDFArchive('sro_dmft_tail_sm_wind.h5')
+    tailmid = HDFArchive('sro_tailfit_mc_1e8.h5')
+    taillg = HDFArchive('sro_dmft_tail_lg_wind.h5')
+
+    Siw_tailsm = tailsm['dmft_results/last_iter']['Sigma_iw']
+    Siw_tailmid = tailmid['dmft_results/last_iter']['Sigma_iw']
+    Siw_taillg = taillg['dmft_results/last_iter']['Sigma_iw']
 
     iw = np.array([complex(x) for x in Siw_res.mesh])
 
@@ -51,7 +53,9 @@ if __name__ == "__main__":
 
         ax[0].plot(iw.imag, Siw_raw['up'].data[:,orb,orb].imag, 'o',ms=3, label=r'$G_{0}^{-1}-G^{-1}$')
         ax[0].plot(iw.imag, Siw_res['up'].data[:,orb,orb].imag, '-', label='res. min.')
-        ax[0].plot(iw.imag, Siw_tail['up'].data[:,orb,orb].imag, '-',label='tail fitted')
+        ax[0].plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].imag, '-',label='window1')
+        ax[0].plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].imag, '-',label='window2')
+        ax[0].plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].imag, '-',label='window3')
         ax[0].plot(iw.imag[higher], Sigma_high00[higher].imag, '--', alpha=0.75)
         ax[0].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
         ax[0].set_xlabel(r'$\nu_{n}$')
@@ -61,7 +65,9 @@ if __name__ == "__main__":
     
         ax[1].plot(iw.imag, Siw_raw['up'].data[:,orb,orb].imag, 'o',ms=3, label='Dyson')
         ax[1].plot(iw.imag, Siw_res['up'].data[:,orb,orb].imag, '-', label='res. min.')
-        ax[1].plot(iw.imag, Siw_tail['up'].data[:,orb,orb].imag, '-', label='tail')
+        ax[1].plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].imag, '-',label='window1')
+        ax[1].plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].imag, '-',label='window2')
+        ax[1].plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].imag, '-',label='window3')
         ax[1].plot(iw.imag[higher], Sigma_high00[higher].imag, '--', alpha=0.75)
         ax[1].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
         ax[1].set_xlabel(r'$\nu_{n}$')
@@ -80,19 +86,9 @@ if __name__ == "__main__":
 
 
     fig, ax = plt.subplots(2,1,sharex=True, figsize=(5,6))
-    add_convergence_to_plot(ax, tail, label='tail fit', color='tab:red', mfc='none')
-    add_convergence_to_plot(ax, res, label='res. min.', color='tab:blue', mfc='none')
-    ax[0].legend()
-    for a, let in zip([ax[0], ax[1]], 
-                      ['(a)', '(b)']): 
-        t = a.text(0.03, 0.05, let, transform = a.transAxes, size=14) 
-        t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
-
-    fig, ax = plt.subplots(2,1,sharex=True, figsize=(5,6))
-    #add_convergence_to_plot(ax, tail, label='good window', color='tab:red', mfc='none')
-    add_convergence_to_plot(ax, HDFArchive('sro_tailfit_mc_1e8.h5'), label='good w', color='tab:blue', mfc='none')
-    add_convergence_to_plot(ax, HDFArchive('sro_dmft_tail_lg_wind.h5'), label='lg w', color='tab:red', mfc='none')
-    add_convergence_to_plot(ax, HDFArchive('sro_dmft_tail_sm_wind_1e8.h5'), label='sm w', color='tab:green', mfc='none')
+    add_convergence_to_plot(ax, HDFArchive('sro_dmft_tail_sm_wind.h5'), label='window1', color='tab:green', mfc='none')
+    add_convergence_to_plot(ax, HDFArchive('sro_tailfit_mc_1e8.h5'), label='window2', color='tab:blue', mfc='none')
+    add_convergence_to_plot(ax, HDFArchive('sro_dmft_tail_lg_wind.h5'), label='window3', color='tab:red', mfc='none')
     add_convergence_to_plot(ax, res, label='res. min.', color='tab:orange', mfc='none')
     ax[0].legend()
     for a, let in zip([ax[0], ax[1]], 

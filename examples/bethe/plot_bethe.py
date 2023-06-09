@@ -131,5 +131,5 @@ if __name__ == "__main__":
         t = a.text(0.03, 0.15, let, transform = a.transAxes, size=14) 
         t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
 
-    plt.savefig('int_bethe_problem.pdf')
-    #plt.show()
+    #plt.savefig('int_bethe_problem.pdf')
+    plt.show()

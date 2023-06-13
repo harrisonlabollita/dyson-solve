@@ -162,9 +162,10 @@ ax[1].axhline(100, color='k', ls='--', label='res. min')
 ax[1].axhline(100, color='k', ls='dotted', label=r'$\mathcal{O}(\nu_{n}^{2})$')
 ax[1].set_ylim(1e-16, 1e0)
 ax[1].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', ncols=2, loc='lower left', fontsize=8)
-ax[1].set_xlabel(r'$i\nu_{n}$')
+ax[1].set_xlabel(r'$\nu_{n}$')
 
 for a, let in zip(ax, ['(a)', '(b)']):
     t = a.text(0.03, 0.85, let, transform = a.transAxes, size=14) 
     t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
+#plt.show()
 plt.savefig('dyson_exact_bethe_abserr.pdf')

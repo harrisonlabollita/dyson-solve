@@ -23,8 +23,8 @@ class MinimizerResult(NamedTuple):
 
 class SolverResult(NamedTuple):
     Sigma_iw  : Any    = None
-    G_tau     : Any    = None
-    G0_tau    : Any    = None
+    G     : Any    = None
+    G0    : Any    = None
     Sigma_moments : Any = None
     minimizer : MinimizerResult     = None
 
@@ -159,14 +159,57 @@ class Dyson(object):
                     Mkl[iwk, iwl] /= (wk+wl)
         return Mkl
 
+    def _solve_minimize_problem(self,
+                                 beta,               # inverse temperature
+                                 sigma_moments,      # high-freq moments of Σ
+                                 g_taa = None,         # G(tau)  data
+                                 g0_taa = None,        # G0(tau) data
+                                 g_iwaa = None,        # G(iw)   data
+                                 g0_iwaa = None,       # G0(iw)  data
+                                 tau = None,           # tau mesh
+                                 iw  = None,           # tau mesh
+                                ):
+
+        raise NotImplementedError
+
+        tau_k = self.get_tau(beta) / beta 
+        inu_k = self.get_iom(beta)
+        wl = self.dlr_nodes
+
+        Ktilde = -1*iw_kernel(inu_k, wl/beta)
+
+        one = np.ones(len(self)).reshape(-1,1)
+
+        Ktilde_mT1 = np.linalg.solve(Ktilde.T, one)
+        Dtilde = np.diag((g0_iwaa*g_iwaa))
+
+        Sigma1_tilde = one.T @ np.linalg.solve(Ktilde, (1/g0_iwaa - 1/g_iwaa) )
+
+        constraint = Sigma_infty*(one.T@Ktilde_mT1) - Sigma_1 
+
+        u = Ktilde.T @ (np.linalg.solve(Dtilde, Ktilde_mT1) )
+
+        M1u = np.linalg.solve(self.Mkl, u)
+
+        h = (g_iwaa - g0_iwaa)
+
+        rho = h + ( (constraint - Sigma1_tilde ) / (u.T@M1u) ) * (Ktilde @ M1u)
+
+        sigma = np.linalg.sovle(Dtilde, rho)
+
+
+
 
     # run the scipy minimization
     def _minimize_dyson_equation(self,
-                                 g_iaa,         # G data
-                                 g0_iaa,        # G0 data
-                                 beta,          # inverse temperature
-                                 sigma_moments, # high-freq moments of Σ
-                                 tau=None,      # tau mesh
+                                 beta,               # inverse temperature
+                                 sigma_moments,      # high-freq moments of Σ
+                                 g_taa = None,         # G(tau)  data
+                                 g0_taa = None,        # G0(tau) data
+                                 g_iwaa = None,        # G(iw)   data
+                                 g0_iwaa = None,       # G0(iw)  data
+                                 tau = None,           # tau mesh
+                                 iw  = None,           # tau mesh
                                 ):
 
         
@@ -237,10 +280,16 @@ class Dyson(object):
             # the Frobeinus norm
             return np.sqrt(np.sum(R2)).real
 
-        assert g_iaa.shape[1:] == g0_iaa.shape[1:] == sigma_moments.shape[1:], "number of orbs inconsistent across G, G0, and moments"
+        #assert g_iaa.shape[1:] == g0_iaa.shape[1:] == sigma_moments.shape[1:], "number of orbs inconsistent across G, G0, and moments"
         
         nx = len(self)
-        ni, no, _ = g_iaa.shape
+        if g_taa is not None:
+            ni, no, _ = g_taa.shape
+        elif g_iwaa is not None:
+            ni, no, _ = g_iwaa.shape
+        else:
+            raise ValueError("Please provide either Green's function data on tau or iw")
+
         shape_xaa = (nx, no, no)
         N = (no*(no-1))//2
         dtype = complex
@@ -256,19 +305,32 @@ class Dyson(object):
         freq = self.get_iom(beta)
         
         # dlr fit to G and G0 
-        if tau is None: g_xaa, g0_xaa = self.dlr_from_tau(g_iaa), self.dlr_from_tau(g0_iaa)
-        else: g_xaa, g0_xaa  = self.fit_dlr_from_tau(tau, g_iaa, beta), self.fit_dlr_from_tau(tau, g0_iaa, beta)
-        
+        if g_taa is not None:
+            if tau is None: g_xaa = self.dlr_from_tau(g_taa)
+            else: g_xaa = self.fit_dlr_from_tau(tau, g_taa, beta)
+
+        if g0_taa is not None:
+            if tau is None: g0_xaa = self.dlr_from_tau(g0_taa)
+            else: g0_xaa = self.fit_dlr_from_tau(tau, g0_taa, beta)
+
+        if g_iwaa is not None:
+            if iw is None: g_xaa = self.dlr_from_iom(g_iwaa, beta)
+            else: g_xaa = self.fit_dlr_from_iom(freq, g_iwaa, beta)
+
+        if g0_iwaa is not None:
+            if iw is None: g0_xaa = self.dlr_from_iom(g0_iwaa, beta)
+            else: g0_xaa = self.fit_dlr_from_iom(iw, g0_iwaa, beta)
+
         if self.verbose:
             eval_tau = tau if tau is not None else self.get_tau(beta) #np.linspace(0, beta, len(g_iaa))
             g, g0 = self.eval_dlr_tau(g_xaa, eval_tau, beta), self.eval_dlr_tau(g0_xaa, eval_tau,  beta)
             print('initial DLR fits to G(τ) and G0(τ)')
             print(f'max|G(τ) - Gdlr(τ)| = {np.max(np.abs(g-g_iaa)):.6e}')
             print(f'max|G0(τ) - G0dlr(τ)| = {np.max(np.abs(g0-g0_iaa)):.6e}')
-        
+
         # compute and obtain initial Σ
         g_iwaa, g0_iwaa = self.iom_from_dlr(g_xaa, beta), self.iom_from_dlr(g0_xaa, beta)
-        
+
         # the DLR representable part of the self-energy
         # initial guess for DLR Sigma only use of Dyson equation!
         sig0_iwaa = np.linalg.inv(g0_iwaa)-np.linalg.inv(g_iwaa)-sig_infty
@@ -303,24 +365,47 @@ class Dyson(object):
         return result
 
     # main solve function
-    def solve(self, Sigma_iw=None, 
-                    G_tau=None, 
-                    G0_tau=None, 
-                    Sigma_moments=None, 
-                    beta=None, 
-                    om_mesh=None, 
-                    tau_mesh=None
+    def solve(self, Sigma_iw = None, 
+                    G_tau = None, 
+                    G0_tau = None, 
+                    G_iw = None, 
+                    G0_iw = None, 
+                    Sigma_moments = None, 
+                    beta = None, 
+                    om_mesh = None, 
+                    tau_mesh = None
                     ):
 
         result = None
-        
+
+        assert G_tau is not None or G_iw is not None, "Please provide G"
+        assert G_tau is None or G_iw is None, "Please only provide one G in tau or matsubara"
+        assert G0_tau is not None or G0_iw is not None, "Please provide G0"
+        assert G0_tau is None and G0_iw is None, "Please only provide one G0 in tau or matsubara"
+
+        if G_tau is not None and G_iw is None:   
+            G = G_tau
+            G_tau_or_freq = 'tau'
+        elif G_tau is None and G_iw is not None: 
+            G = G_iw
+            G_tau_or_freq = 'freq'
+
+        if G0_tau is not None and G0_iw is None:   
+            G0 = G0_tau
+            G0_tau_or_freq = 'tau'
+        elif G0_tau is None and G0_iw is not None: 
+            G0 = G0_iw
+            G0_tau_or_freq = 'freq'
+
         # we are working with a TRIQS Green's function/ Block Green's function object
-        if all(list(map(is_block_gf, [G_tau, G0_tau]))):
+        if all(list(map(is_block_gf, [G, G0]))):
 
-            beta = G_tau.mesh.beta
-            tau  = np.array([float(x) for x in G_tau.mesh]) if tau_mesh is None else tau_mesh
+            beta = G.mesh.beta
+            if G_tau_or_freq == 'tau':
+                tau  = np.array([float(x) for x in G.mesh]) if tau_mesh is None else tau_mesh
+            if G_tau_or_freq == 'freq':
+                iw  = np.array([complex(x) for x in G.mesh]) if om_mesh is None else om_mesh
 
-            #TODO: Sigma_iw shouldn't be required for BlockGf option
             if Sigma_iw is not None:
                 Sigma_iw_fit = Sigma_iw.copy()
                 om_mesh = np.array([complex(x) for x in Sigma_iw_fit.mesh])
@@ -328,11 +413,14 @@ class Dyson(object):
             dlr_results = {}
             for block, sig in Sigma_iw_fit:
 
-                dlr_results[block] =  self._minimize_dyson_equation(G_tau[block].data,
-                                                                    G0_tau[block].data,
-                                                                    beta,
+                dlr_results[block] =  self._minimize_dyson_equation(beta, 
                                                                     Sigma_moments[block],
-                                                                    tau=tau
+                                                                    g_taa = G[block].data if G_tau_or_freq == 'tau' else None,
+                                                                    g_iwaa = G[block].data if G_tau_or_freq == 'freq' else None,
+                                                                    g0_taa = G0[block].data if G0_tau_or_freq == 'tau' else None,
+                                                                    g0_iwaa = G0[block].data if G0_tau_or_freq == 'freq' else None,
+                                                                    tau=tau,
+                                                                    iw=iw,
                                                               )
                 # DLR representable part of self energy
                 Sigma_iw_fit[block].data[:] = self.eval_dlr_iom(dlr_results[block].sig_xaa, om_mesh, beta)
@@ -340,29 +428,32 @@ class Dyson(object):
                 Sigma_iw_fit[block].data[:] +=  Sigma_moments[block][0]
 
         # our Green's functions are just numpy arrays
-        elif all(list(map(is_array, [G_tau, G0_tau]))):
+        elif all(list(map(is_array, [G, G0]))):
 
             assert beta is not None, "must provide a beta!"
 
-            dlr_results = self._minimize_dyson_equation(G_tau,
-                                                        G0_tau,
-                                                        beta,
+            dlr_results = self._minimize_dyson_equation(beta,
                                                         Sigma_moments,
-                                                        tau=tau_mesh
+                                                        g_taa = G    if G_tau_or_freq == 'tau' else None,
+                                                        g_iwaa = G   if G_tau_or_freq == 'freq' else None,
+                                                        g0_taa = G0  if G0_tau_or_freq == 'tau' else None,
+                                                        g0_iwaa = G0 if G0_tau_or_freq == 'freq' else None,
+                                                        tau=tau_mesh,
+                                                        iw=om_mesh
                                                         ) 
 
             if om_mesh is None:
                 Sigma_iw_fit = self.iom_from_dlr(dlr_results.sig_xaa, beta)
                 Sigma_iw_fit += Sigma_moments[0]
             else:
-                Sigma_iw_fit = self.eval_dlr_iom(dlr_results.sig_xaa,om_mesh,beta) 
+                Sigma_iw_fit = self.eval_dlr_iom(dlr_results.sig_xaa, om_mesh, beta) 
                 Sigma_iw_fit += Sigma_moments[0]
 
         else: raise ValueError
 
         result = SolverResult(Sigma_iw_fit,
-                               G_tau,
-                               G0_tau,
+                               G,
+                               G0,
                                Sigma_moments,
                                dlr_results
                         )

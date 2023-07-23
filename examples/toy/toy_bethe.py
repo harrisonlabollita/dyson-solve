@@ -2,8 +2,7 @@
 import sys, os
 
 import numpy as np
-#seed = 10110
-seed = 10119
+seed = 10110
 np.random.seed(seed)
 print(f'random seed is set to {seed}')
 
@@ -58,9 +57,8 @@ eval_G_tau, eval_G_iw = np.vectorize(eval_G_tau), np.vectorize(eval_G_iw)
 
 
 # set up problem
-beta = 10
-
-lamb=10
+beta = 100
+lamb=100
 
 G0_iw_ref = GfImFreq(n_points=1666, beta = beta, indices=[1])
 iw_array = np.array([complex(x) for x in G0_iw_ref.mesh])
@@ -75,14 +73,11 @@ print('computing G(τ)')
 G_tau_ref = GfImTime(n_points=10000, beta = beta, indices=[1])
 tau_mesh = np.array([float(x) for x in G_tau_ref.mesh])
 
-#if os.path.isfile('G_tau_ref.txt'):
-#    data = np.loadtxt('G_tau_ref.txt', dtype=complex)
-#else:
-#    data = eval_G_tau(tau_mesh, beta)
-#    print('saving ref data', np.savetxt('G_tau_ref.txt', data))
-data = eval_G_tau(tau_mesh, beta)
-#data = np.loadtxt('G_tau_ref.txt', dtype=complex)
-#print('saving ref data', np.savetxt(f'G_tau_ref_{beta}.txt', data))
+if os.path.isfile('G_tau_ref.txt'):
+    data = np.loadtxt('G_tau_ref.txt', dtype=complex)
+else:
+    data = eval_G_tau(tau_mesh, beta)
+    print('saving ref data', np.savetxt('G_tau_ref.txt', data))
 
 G_tau_ref.data[:] = data.reshape(-1,1,1)
 
@@ -91,8 +86,8 @@ def experiment(tol):
     print('running an experiment with tol = ', tol)
     dys = Dyson(lamb, eps=tol, options=dict(
                                             maxiter=5000, 
-											gtol=tol*0.001 if tol < 1e-8 else 1e-8,
-                                            xtol=tol*0.001 if tol < 1e-8 else 1e-8,
+											gtol=tol*0.01 if tol < 1e-8 else 1e-8,
+                                            xtol=tol*0.01 if tol < 1e-8 else 1e-8,
                                             finite_diff_rel_step = 1e-14
                                             )
                                             )
@@ -137,7 +132,8 @@ def experiment(tol):
 
     return {'dyson' : Sigma_iw.data.flatten(), 'res' : Sigma_iw_res }
 
-colors = ['tab:red', 'tab:blue', 'tab:green', 'tab:orange', 'tab:purple']
+colors = ['tab:blue', 'tab:red', 'tab:green', 'tab:orange', 'tab:purple']
+#colors = ['dodgerblue', 'lightcoral', 'limegreen', 'tab:orange', 'tab:purple']
 
 def add_results_to_plot(ax, results):
     assert len(ax) == 2
@@ -150,7 +146,7 @@ def add_results_to_plot(ax, results):
         if key == 1e-4:
             ax[0].plot(iw_array.imag, Sigma_iw_ref.imag, 'o', ms=3, mfc='none', color='tab:red', label=r'$\Sigma_{\mathrm{exact}}$')
             ax[0].plot(iw_array.imag, dys.imag, '.', ms=2, color='tab:blue', label=r'$G_{0}^{-1}-G^{-1}$')
-            ax[0].plot(iw_array.imag, res.imag, '.', ms=2, color='tab:green', label='res. min.')
+            ax[0].plot(iw_array.imag, res.imag, '.', ms=2, color='tab:green',label='res. min.')
         ax[1].loglog(iw_array.imag, np.abs(dys-Sigma_iw_ref), ls='-', color=color, label=r'$\eta=$ '+'{:1.0e}'.format(key))
         ax[1].loglog(iw_array.imag, np.abs(res-Sigma_iw_ref), ls='--', color=color)
         ax[1].set_ylabel(r'$\Sigma$ asbolute error')
@@ -161,20 +157,20 @@ results = {tol : experiment(tol) for tol in tols }
 
 scale = 1.2
 fig, ax = plt.subplots(1,4, figsize=(12*scale, 2*scale))
-ax[0].plot(tau_mesh/beta, G_tau_ref.data.flatten().real, lw=2)
+ax[0].plot(tau_mesh/beta, G_tau_ref.data.flatten().real, lw=2, color='tab:blue')
 ax[0].set_xlabel(r'$\tau/\beta$'); ax[0].set_ylabel(r'$G(\tau)$')
 
-ax[1].plot(iw_array.imag, G_iw_ref.data.flatten().imag, 'o', ms=2, color='tab:red')
+ax[1].plot(iw_array.imag, G_iw_ref.data.flatten().imag, 'o', ms=2, color='tab:red', mfc='none', )
 ax[1].set_xlabel(r'$\nu_{n}$'); ax[1].set_ylabel(r'Im$G(i\nu_{n})$')
 
 ax[2].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
 ax[2].set_ylim(-0.5, 0.5)
 add_results_to_plot(ax[2:], results)
-ax[2].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', loc='upper right', fontsize=8)
-ax[3].loglog(iw_array.imag[1700:1900], 1e-2*(iw_array.imag**2)[1700:1900], ls='dotted', lw=2, color='k')
+ax[2].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', loc='lower left', fontsize=7)
+for tol  in tols: ax[3].loglog(iw_array.imag[1660:1975], tol*(iw_array.imag**2)[1660:1975], ls='dotted', lw=2, color='k')
 ax[3].axhline(100, color='k', ls='-', label=r'$G_{0}^{-1}-G^{-1}$')
 ax[3].axhline(100, color='k', ls='--', label='res. min')
-ax[3].axhline(100, color='k', ls='dotted', label=r'$\mathcal{O}(\nu_{n}^{2})$')
+ax[3].axhline(100, color='k', ls='dotted', label=r'$\mathcal{O}(\eta\nu_{n}^{2})$')
 ax[3].set_ylim(1e-16, 1e0)
 ax[3].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', ncols=2, loc='lower left', fontsize=7)
 ax[3].set_xlabel(r'$\nu_{n}$')
@@ -183,5 +179,5 @@ for a, let in zip(ax, ['(a)', '(b)', '(c)', '(d)']):
     t = a.text(0.05, 0.85, let, transform = a.transAxes, size=14) 
     t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
 plt.subplots_adjust(wspace=0.5)
-plt.show()
-#plt.savefig('dyson_exact_bethe_abserr_beta_100.pdf')
+#plt.show()
+plt.savefig('dyson_exact_bethe_abserr_beta_100.pdf')

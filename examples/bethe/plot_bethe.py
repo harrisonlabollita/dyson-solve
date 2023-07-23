@@ -32,7 +32,7 @@ def plot_convergence(ax, mc, color, n_taus, mc_cycles, lambdas, parent_dir):
         ref_cvg[j] = np.max(np.abs(S_ref['up'].data.flatten()-S_fit['up'].data.flatten()))/sig_max
         j+=1
     
-    ax.semilogy(lambdas, ref_cvg, 'o-', mec=color[0], color=color[1])
+    ax.semilogy(lambdas, ref_cvg, 'o-', mec=color[0], color=color[1], mfc='none', )
     ax.semilogy(lambdas[:-1], np.abs((ref_cvg-ref_cvg[-1]))[:-1], 'x-', mec=color[0], color=color[1])
     ax.set_xlabel(r'$\Lambda$'); ax.set_ylabel(r'$L^{\infty}$ error of $\Sigma(i\nu_{n})$')
     ax.axvline(20, color='k', ls='dotted', lw=1)
@@ -46,15 +46,16 @@ def plot_Aw(ax, parent_dir):
 
     w_mesh = MeshReFreq(window=(-8,8), n_w=5000)
     G_w = Gf(mesh=w_mesh, target_shape=[1,1])
-    G_w.set_from_pade(G_iw['up'])
+    G_w.set_from_pade(G_iw['up'], n_points=1000, freq_offset=0.01)
     om = np.array([float(x) for x in w_mesh])
-    ax.plot(om, -G_w.data[:,0,0].imag/np.pi, lw=2)
-    y = 13/24
+
+    ax.plot(om, -G_w.data[:,0,0].imag/np.pi, '-', color='tab:blue', lw=2)
+    y = 13/48
     ax.arrow(0, y, 4, 0, color='k', head_width=0.015, head_length=0.15, length_includes_head=True)
     ax.arrow(4, y, -4, 0, color='k', head_width=0.015, head_length=0.15, length_includes_head=True)
     ax.text(3/8, y+0.01, r'$\omega_{\mathrm{max}} = 4$ eV')
     ax.text(-4.5, y+0.01, r'$\beta = 5$ eV$^{-1}$')
-    ax.axvspan(0, +4, color='k', alpha=0.1, lw=0)
+    ax.axvspan(0, +4, alpha=0.1, lw=0, facecolor='k')
     #ax.axvline(0.0, color='k', ls='dotted')
     #ax.axvline(4.0, color='k', ls='dotted')
 
@@ -117,7 +118,7 @@ if __name__ == "__main__":
     plot_convergence(ax[1,0], 5e6, ['tab:blue', 'tab:blue'], **datainfo);
     plot_convergence(ax[1,0], 5e9, ['tab:red','tab:red'], **datainfo);
 
-    add_label(ax[1,0], color='k', marker='o', lw=2, label=r'$\Sigma_{\Lambda_{i}}-\Sigma_{\mathrm{ref}}$')
+    add_label(ax[1,0], color='k', marker='o', mfc='none', lw=2, label=r'$\Sigma_{\Lambda_{i}}-\Sigma_{\mathrm{ref}}$')
     add_label(ax[1,0], color='k', marker='x', mfc='none', lw=2, label=r'$\Sigma_{\Lambda_{i}}-\Sigma_{\Lambda_{c}}$')
     add_label(ax[1,0], color='tab:blue', ls='-',  lw=2, label=r'N = $\mathcal{O}(10^{6})$')
     add_label(ax[1,0], color='tab:red', ls='-', lw=2, label=r'N = $\mathcal{O}(10^{9})$')
@@ -136,8 +137,8 @@ if __name__ == "__main__":
     idx = np.where(mesh > 0)
     #ax[2].plot(mesh.imag, S_ref['up'][0,0].data.real-S_ref['up'](0)[0,0].real, '.', ms=2, color='tab:blue')
     #ax[2].plot(mesh.imag, S_fit['up'][0,0].data.real-S_fit['up'](0)[0,0].real, 'o', ms=3, mfc='none', color='tab:red')
-    ax[0,1].plot(mesh[idx].imag, S_fit['up'][0,0].data[idx].imag, '-', lw=2, color='tab:blue', label=r'$\Lambda = 2$')
-    ins.plot(mesh[idx].imag, S_fit['up'][0,0].data[idx].imag, '-', lw=2, color='tab:blue', label=r'$\Lambda = 2$')
+    ax[0,1].plot(mesh[idx].imag, S_fit['up'][0,0].data[idx].imag, 'o',markeredgewidth=1.5, mfc='none', lw=2, color='tab:blue', label=r'$\Lambda = 2$')
+    ins.plot(mesh[idx].imag, S_fit['up'][0,0].data[idx].imag, 'o', markeredgewidth=1.5, mfc='none', lw=2, color='tab:blue', label=r'$\Lambda = 2$')
     ax[0,1].set_xlabel(r'$\nu_{n}$'); ax[0,1].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
     ax[0,1].set_xlim(0, 20); ax[0,1].set_ylim(-1.1, 0) #-0.25)
     ax[1,1].loglog(mesh.imag, np.abs(S_ref['up'][0,0].data-S_fit['up'][0,0].data), '-', lw=2, color='tab:blue', label=r'$\Lambda = 2$')
@@ -152,16 +153,16 @@ if __name__ == "__main__":
     S_fit =  ar['Sigma_iw_fit']
     mesh = np.array([complex(x) for x in S_fit.mesh])
     idx = np.where(mesh > 0)
-    ax[0,1].plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, '-', lw=2, color='tab:red', label=r'$\Lambda = 6$')
-    ins.plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, '-', lw=2, color='tab:red', label=r'$\Lambda = 6$')
+    ax[0,1].plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, 'x', markeredgewidth=1.5, lw=2, color='tab:red', label=r'$\Lambda = 6$')
+    ins.plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, 'x', markeredgewidth=1.5, lw=2, color='tab:red', label=r'$\Lambda = 6$')
     ax[1,1].loglog(mesh.imag, np.abs(S_ref['up'][0,0].data-S_fit['up'][0,0].data), '-', lw=2, color='tab:red', label=r'$\Lambda = 6$')
 
     ar = HDFArchive(parent_dir+'/'+file_base.format(20, 10001, 5e9))
     S_fit =  ar['Sigma_iw_fit']
     mesh = np.array([complex(x) for x in S_fit.mesh])
     idx = np.where(mesh > 0)
-    ax[0,1].plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, '-', lw=2, color='tab:green', label=r'$\Lambda = 20$')
-    ins.plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, '-', lw=2, color='tab:green', label=r'$\Lambda = 20$')
+    ax[0,1].plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, '^',markeredgewidth=1.5, mfc='none', lw=2, color='tab:green', label=r'$\Lambda = 20$')
+    ins.plot(mesh.imag[idx], S_fit['up'][0,0].data[idx].imag, '^', markeredgewidth=1.5, mfc='none', lw=2, color='tab:green', label=r'$\Lambda = 20$')
     ax[1,1].loglog(mesh.imag, np.abs(S_ref['up'][0,0].data-S_fit['up'][0,0].data), '-', lw=2, color='tab:green', label=r'$\Lambda = 20$')
     ax[1,1].legend(loc='best')
     ax[1,1].set_ylabel(r'$|\Sigma_{\Lambda}(i\nu_{n})-\Sigma_{\mathrm{ref}}(i\nu_{n})|$')
@@ -182,5 +183,5 @@ if __name__ == "__main__":
         t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
 
     plt.subplots_adjust(hspace=0.25, wspace=0.37)
-    #plt.show()
-    plt.savefig('int_bethe_problem.pdf')
+    plt.show()
+    #plt.savefig('int_bethe_problem.pdf')

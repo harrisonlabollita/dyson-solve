@@ -127,50 +127,34 @@ def experiment(tol):
     return {'dyson' : Sigma_iw.data.flatten(), 'res' : Sigma_iw_res }
 
 colors = ['tab:blue', 'tab:red', 'tab:green', 'tab:orange', 'tab:purple']
-#colors = ['dodgerblue', 'lightcoral', 'limegreen', 'tab:orange', 'tab:purple']
 
-def add_results_to_plot(ax, results):
-    assert len(ax) == 2
-    c=0
-    for key in results.keys():
-        color=colors[c]
-        dys = results[key]['dyson']
-        res = results[key]['res']
 
-        if key == 1e-4:
-            ax[0].plot(iw_array.imag, Sigma_iw_ref.imag, 'o', ms=3, mfc='none', color='tab:red', label=r'$\Sigma_{\mathrm{exact}}$')
-            ax[0].plot(iw_array.imag, dys.imag, '.', ms=2, color='tab:blue', label=r'$G_{0}^{-1}-G^{-1}$')
-            ax[0].plot(iw_array.imag, res.imag, '.', ms=2, color='tab:green',label='CRM')
-        ax[1].loglog(iw_array.imag, np.abs(dys-Sigma_iw_ref), ls='-', color=color, label=r'$\eta=$ '+'{:1.0e}'.format(key))
-        ax[1].loglog(iw_array.imag, np.abs(res-Sigma_iw_ref), ls='--', color=color)
-        ax[1].set_ylabel(r'$\Sigma$ asbolute error')
-        c+=1
+    #ax[1].loglog(iw_array.imag, np.abs(dys-Sigma_iw_ref), ls='-', color=color, label=r'$\eta=$ '+'{:1.0e}'.format(key))
+    #ax[1].loglog(iw_array.imag, np.abs(res-Sigma_iw_ref), ls='--', color=color)
+    #ax[1].set_ylabel(r'$\Sigma$ asbolute error')
 
 tols = [1e-4, 1e-6, 1e-8]
 results = {tol : experiment(tol) for tol in tols }
 
-scale = 1.2
-fig, ax = plt.subplots(1,4, figsize=(12*scale, 2*scale))
-ax[0].plot(tau_mesh/beta, G_tau_ref.data.flatten().real, lw=2, color='tab:blue')
-ax[0].set_xlabel(r'$\tau/\beta$'); ax[0].set_ylabel(r'$G(\tau)$')
+fig, ax = plt.subplots(1,1)
 
-ax[1].plot(iw_array.imag, G_iw_ref.data.flatten().imag, 'o', ms=2, color='tab:red', mfc='none', )
-ax[1].set_xlabel(r'$\nu_{n}$'); ax[1].set_ylabel(r'Im$G(i\nu_{n})$')
+ax.set_ylabel(r'Im$\Sigma(i\nu_{n})$')
+ax.set_ylim(-0.5, 0.5)
 
-ax[2].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
-ax[2].set_ylim(-0.5, 0.5)
-add_results_to_plot(ax[2:], results)
-ax[2].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', loc='lower left', fontsize=7.5)
-for tol  in tols: ax[3].loglog(iw_array.imag[1660:1975], tol*(iw_array.imag**2)[1660:1975], ls='dotted', lw=2, color='k')
-ax[3].axhline(100, color='k', ls='-', label=r'$G_{0}^{-1}-G^{-1}$')
-ax[3].axhline(100, color='k', ls='--', label='CRM')
-ax[3].axhline(100, color='k', ls='dotted', label=r'$\mathcal{O}(\eta\nu_{n}^{2})$')
-ax[3].set_ylim(1e-16, 1e0)
-ax[3].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', ncols=2, loc='lower left', fontsize=7)
-ax[3].set_xlabel(r'$\nu_{n}$')
+dys = results['dyson']
+res = results['res']
 
-for a, let in zip(ax, ['(a)', '(b)', '(c)', '(d)']):
-    t = a.text(0.05, 0.85, let, transform = a.transAxes, size=14) 
-    t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
-plt.subplots_adjust(wspace=0.45)
-plt.savefig('dyson_exact_bethe_abserr_beta_100.pdf')
+    ax.plot(iw_array.imag, Sigma_iw_ref.imag, 'o', ms=3, mfc='none', color='tab:red', label=r'$\Sigma_{\mathrm{exact}}$')
+    ax.plot(iw_array.imag, dys.imag, '.', ms=2, color='tab:blue', label=r'$G_{0}^{-1}-G^{-1}$')
+    ax.plot(iw_array.imag, res.imag, '.', ms=2, color='tab:green',label='CRM')
+#ax[2].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', loc='lower left', fontsize=7.5)
+#for tol  in tols: ax[3].loglog(iw_array.imag[1660:1975], tol*(iw_array.imag**2)[1660:1975], ls='dotted', lw=2, color='k')
+#ax[3].axhline(100, color='k', ls='-', label=r'$G_{0}^{-1}-G^{-1}$')
+#ax[3].axhline(100, color='k', ls='--', label='CRM')
+#ax[3].axhline(100, color='k', ls='dotted', label=r'$\mathcal{O}(\eta\nu_{n}^{2})$')
+#ax[3].set_ylim(1e-16, 1e0)
+#ax[3].legend(frameon=True, framealpha=0.8, facecolor='white', edgecolor='none', ncols=2, loc='lower left', fontsize=7)
+#ax[3].set_xlabel(r'$\nu_{n}$')
+
+plt.show()
+#plt.savefig('dyson_exact_bethe_abserr_beta_100.pdf')

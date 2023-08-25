@@ -1,4 +1,7 @@
 *.h5
+*.in
+*.npy
+*.hdf5
 __pycache__
 *.swp
 *.pdf

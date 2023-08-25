@@ -106,8 +106,28 @@ if __name__ == "__main__":
 
     #fig, ax = plt.subplots(1,2,figsize=(4,5), width_ratios=[2,1])
     scale = 1.2
-    fig,ax = plt.subplots(2,3,width_ratios=[2,1,2], figsize=(9*scale, 4*scale))
+    #fig,ax = plt.subplots(2,3,width_ratios=[2,1,2], )
 
+    fig = plt.figure(figsize=(9*scale, 4*scale))# layout="constrained")
+    #gs = GridSpec(2, 5, figure=fig)
+    gs = GridSpec(2, 21, figure=fig)
+
+    #ax1 = fig.add_subplot(gs[0,:2])
+    #ax2 = fig.add_subplot(gs[1,:2])
+    ax1 = fig.add_subplot(gs[0,:8])
+    ax2 = fig.add_subplot(gs[1,:8])
+
+    #ax3 = fig.add_subplot(gs[0,2:3])
+    #ax4 = fig.add_subplot(gs[1,2:3])
+
+    ax3 = fig.add_subplot(gs[0,8:10])
+    ax4 = fig.add_subplot(gs[1,8:10])
+
+    #ax5 = fig.add_subplot(gs[0,3:])
+    #ax6 = fig.add_subplot(gs[1,3:])
+
+    ax5 = fig.add_subplot(gs[0,13:])
+    ax6 = fig.add_subplot(gs[1,13:])
     higher = np.where(iw.imag > 5)
 
     windows = { 'window1' : (2,4),
@@ -127,57 +147,58 @@ if __name__ == "__main__":
     #ax[0].axvline(4, color='dodgerblue', ls='-', lw=1)
     #ax[0].axvline(6, color='cyan', ls='--', lw=1)
     #ax[0].axvline(10, color='tab:red', ls='-.', lw=1)
-    ax[0,0].plot(iw.imag, Siw_raw['up'].data[:,orb,orb].real, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
-    ax[0,1].plot(iw.imag, Siw_raw['up'].data[:,orb,orb].real, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
-    ax[1,0].plot(iw.imag, Siw_raw['up'].data[:,orb,orb].imag, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
-    ax[1,1].plot(iw.imag, Siw_raw['up'].data[:,orb,orb].imag, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
+    ax1.plot(iw.imag, Siw_raw['up'].data[:,orb,orb].real, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
+    ax3.plot(iw.imag, Siw_raw['up'].data[:,orb,orb].real, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
+    ax2.plot(iw.imag, Siw_raw['up'].data[:,orb,orb].imag, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
+    ax4.plot(iw.imag, Siw_raw['up'].data[:,orb,orb].imag, 'ko',ms=4,mfc='none', label=r'$G_{0}^{-1}-G^{-1}$')
 
-    ax[0,0].plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].real, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
-    ax[0,1].plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].real, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
-    ax[1,0].plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].imag, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
-    ax[1,1].plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].imag, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
+    ax1.plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].real, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
+    ax3.plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].real, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
+    ax2.plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].imag, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
+    ax4.plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].imag, 'o',ms=3, color='tab:blue', mfc='none', label='window 1')
 
-    ax[0,0].plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].real, 's',ms=3,color='tab:red',mfc='none', label='window 2')
-    ax[0,1].plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].real, 's',ms=3,color='tab:red',mfc='none', label='window 2')
-    ax[1,0].plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].imag, 's',ms=3,color='tab:red',mfc='none', label='window 2')
-    ax[1,1].plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].imag, 's',ms=3,color='tab:red',mfc='none', label='window 2')
+    ax1.plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].real, 's',ms=3,color='tab:red',mfc='none', label='window 2')
+    ax3.plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].real, 's',ms=3,color='tab:red',mfc='none', label='window 2')
+    ax2.plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].imag, 's',ms=3,color='tab:red',mfc='none', label='window 2')
+    ax4.plot(iw.imag, Siw_tailmid['up'].data[:,orb,orb].imag, 's',ms=3,color='tab:red',mfc='none', label='window 2')
 
-    ax[0,0].plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].real, '^', ms=3,color='tab:green',mfc='none', label='window 3')
-    ax[0,1].plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].real, '^', ms=3,color='tab:green',mfc='none', label='window 3')
-    ax[1,0].plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].imag, '^', ms=3,color='tab:green',mfc='none', label='window 3')
-    ax[1,1].plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].imag, '^', ms=3,color='tab:green',mfc='none', label='window 3')
+    ax1.plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].real, '^', ms=3,color='tab:green',mfc='none', label='window 3')
+    ax3.plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].real, '^', ms=3,color='tab:green',mfc='none', label='window 3')
+    ax2.plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].imag, '^', ms=3,color='tab:green',mfc='none', label='window 3')
+    ax4.plot(iw.imag, Siw_taillg['up'].data[:,orb,orb].imag, '^', ms=3,color='tab:green',mfc='none', label='window 3')
 
-    ax[0,0].plot(iw.imag, Siw_res['up'].data[:,orb,orb].real, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
-    ax[0,1].plot(iw.imag, Siw_res['up'].data[:,orb,orb].real, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
-    ax[1,0].plot(iw.imag, Siw_res['up'].data[:,orb,orb].imag, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
-    ax[1,1].plot(iw.imag, Siw_res['up'].data[:,orb,orb].imag, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
+    ax1.plot(iw.imag, Siw_res['up'].data[:,orb,orb].real, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
+    ax3.plot(iw.imag, Siw_res['up'].data[:,orb,orb].real, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
+    ax2.plot(iw.imag, Siw_res['up'].data[:,orb,orb].imag, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
+    ax4.plot(iw.imag, Siw_res['up'].data[:,orb,orb].imag, 'p', ms=3,color='tab:orange',mfc='none', label='CRM')
 
-    ax[0,0].plot(iw.imag[higher], Sigma_high00[higher].real, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
-    ax[0,1].plot(iw.imag[higher], Sigma_high00[higher].real, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
-    ax[1,0].plot(iw.imag[higher], Sigma_high00[higher].imag, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
-    ax[1,1].plot(iw.imag[higher], Sigma_high00[higher].imag, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
+    ax1.plot(iw.imag[higher], Sigma_high00[higher].real, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
+    ax3.plot(iw.imag[higher], Sigma_high00[higher].real, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
+    ax2.plot(iw.imag[higher], Sigma_high00[higher].imag, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
+    ax4.plot(iw.imag[higher], Sigma_high00[higher].imag, ls='dashed', color='k',lw=1, alpha=0.9, label=r'$\Sigma_{\infty}+\Sigma_{1}/i\nu_{n}$')
 
+    ax2.set_ylabel(r'Im$\Sigma(i\nu_{n})$')
+    ax1.set_ylabel(r'Re$\Sigma(i\nu_{n})$')
+    ax2.set_xlabel(r'$\nu_{n}$')
+    ax4.set_xlabel(r'$\nu_{n}$')
 
-    ax[1,0].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
-    ax[0,0].set_ylabel(r'Re$\Sigma(i\nu_{n})$')
-    ax[1,0].set_xlabel(r'$\nu_{n}$')
-    ax[1,1].set_xlabel(r'$\nu_{n}$')
-    ax[0,0].set_xlim(0,12); ax[0,0].set_ylim(4.5, 5.5); 
-    ax[1,0].set_xlim(0,12); ax[1,0].set_ylim(-0.5, -0.1); 
-    ax[0,0].legend(frameon=True, framealpha=0.5, facecolor='white', edgecolor='none', loc='lower left', ncols=2, fontsize=9)
-    ax[0,1].set_xlim(116,120)
-    ax[0,1].set_ylim(4.85, 5.15)
-    ax[0,1].set_ylabel(r'Re$\Sigma(i\nu_{n})$')
+    ax1.set_xlim(0,12); ax1.set_ylim(4.5, 5.5); 
+    ax2.set_xlim(0,12); ax2.set_ylim(-0.5, -0.1); 
+    ax1.legend(frameon=True, framealpha=0.5, facecolor='white', edgecolor='none', loc='lower left', ncols=2, fontsize=9)
+    ax3.set_xlim(116,120)
+    ax3.set_ylim(4.85, 5.15)
+    ax3.tick_params(labelleft=False, labelright=True)
+    #ax[0,1].set_ylabel(r'Re$\Sigma(i\nu_{n})$')
 
-    ax[1,1].set_xlim(116,120)
-    ax[1,1].set_ylim(-0.07, 0); ax[1,1].set_yticks([-0.06, -0.03, 0.0])
-    ax[1,1].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
-    ax[1,1].set_xlabel(r'$\nu_{n}$')
+    ax4.set_xlim(116,120)
+    ax4.set_ylim(-0.02, -0.01); ax4.set_yticks([-0.02, -0.015, -0.01])
+    ax4.tick_params(labelleft=False, labelright=True)
+    #ax[1,1].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
 
-    add_convergence_to_plot(ax[:,-1], HDFArchive('sro_dmft_tail_sm_wind.h5'), label='window1', marker='o', ls='-', color='tab:blue', ms=5)
-    add_convergence_to_plot(ax[:,-1], HDFArchive('sro_tailfit_mc_1e8.h5'), label='window2', marker='s', ls='-', color='tab:red', ms=5)
-    add_convergence_to_plot(ax[:,-1], HDFArchive('sro_dmft_tail_lg_wind.h5'), label='window3', marker='x', ls='-', color='tab:green', ms=5)
-    add_convergence_to_plot(ax[:,-1], HDFArchive('sro_dmft_200_1e-06_mc_1e8_many_iter.h5'), marker='p', ls='-', label='CRM', color='tab:orange', ms=5)
+    add_convergence_to_plot([ax5,ax6], HDFArchive('sro_dmft_tail_sm_wind.h5'), label='window1', marker='o', ls='-', color='tab:blue', ms=5)
+    add_convergence_to_plot([ax5,ax6], HDFArchive('sro_tailfit_mc_1e8.h5'), label='window2', marker='s', ls='-', color='tab:red', ms=5)
+    add_convergence_to_plot([ax5,ax6], HDFArchive('sro_dmft_tail_lg_wind.h5'), label='window3', marker='x', ls='-', color='tab:green', ms=5)
+    add_convergence_to_plot([ax5,ax6], HDFArchive('sro_dmft_200_1e-06_mc_1e8_many_iter.h5'), marker='p', ls='-', label='CRM', color='tab:orange', ms=5)
     
     #ax[1].plot(iw.imag, Siw_raw['up'].data[:,orb,orb].imag, 'o',ms=3, label='Dyson')
     #ax[1].plot(iw.imag, Siw_tailsm['up'].data[:,orb,orb].imag, '-',label='window1')
@@ -187,24 +208,26 @@ if __name__ == "__main__":
     #ax[1].plot(iw.imag[higher], Sigma_high00[higher].imag, '--', alpha=0.75)
     #ax[1].set_ylabel(r'Im$\Sigma(i\nu_{n})$')
     #ax[1].set_xlabel(r'$\nu_{n}$')
-    ax[0,0].set_xticklabels([]); ax[0,1].set_xticklabels([])
+    ax1.set_xticklabels([]); ax3.set_xticklabels([])
+    ax2.set_xticks([0,2,4,6,8,10])
+    ax4.set_xticks([116, 118, 120])
 
     plt.subplots_adjust(hspace=0.1, wspace=0.5)
 
-    for a, let in zip([ax[0,0], ax[1,0]], 
+    for a, let in zip([ax1,ax2], 
                       ['(a)', '(b)']): 
-        t = a.text(0.05, 0.85, let, transform = a.transAxes, size=14) 
+        t = a.text(0.05, 0.60, let, transform = a.transAxes, size=14) 
     #                              #backgroundcolor='white', alpha=0.75)
         t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
-    for a, let in zip([ax[0,1], ax[1,1], ax[0,2], ax[1,2]],['(c)', '(d)', '(e)', '(f)']):
-        t = a.text(0.05, 0.15, let, transform = a.transAxes, size=14) 
+    for a, let in zip([ax3,ax4,ax5,ax6],['(c)', '(d)', '(e)', '(f)']):
+        t = a.text(0.1, 0.15, let, transform = a.transAxes, size=14) 
                                   #backgroundcolor='white', alpha=0.75)
         t.set_bbox(dict(facecolor='white', edgecolor='white', alpha=0.75, lw=0))
 
     #for a, let in zip(ax, 
     #                  ['(a)', '(b)']): 
     #plt.savefig(f'sro-{name}.pdf')
-    plt.show()
-    #plt.savefig('sro_results_nolabel.pdf')
+    #plt.show()
+    plt.savefig('sro_results.pdf')
 
 

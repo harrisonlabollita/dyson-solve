@@ -68,7 +68,7 @@ if __name__ == "__main__":
     add_convergence_to_plot(ax, HDFArchive('sro_dmft_tail_sm_wind.h5'), label='window1', color='cyan', mec='blue')
     add_convergence_to_plot(ax, HDFArchive('sro_tailfit_mc_1e8.h5'), label='window2', color='mediumslateblue', mec='purple')
     add_convergence_to_plot(ax, HDFArchive('sro_dmft_tail_lg_wind.h5'), label='window3', color='lightcoral', mec='red')
-    add_convergence_to_plot(ax, res, label='res. min.', color='limegreen', mec='green')
+    add_convergence_to_plot(ax, res, label='CRM', color='limegreen', mec='green')
     ax[0].legend(loc='upper right', fontsize=8)
     for a, let in zip([ax[0], ax[1]], 
                       ['(a)', '(b)']): 
